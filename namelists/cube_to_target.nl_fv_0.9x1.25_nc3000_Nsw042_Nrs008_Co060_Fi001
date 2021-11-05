@@ -1,7 +1,7 @@
 &topoparams
-  grid_descriptor_fname           = 'inputdata/grid-descriptor-file/fv_0.9x1.25.nc'
+  grid_descriptor_fname           = '/project/amp/juliob/Topo-generate-devel/Topo/inputdata/grid-descriptor-file/fv_0.9x1.25.nc'
   output_grid                     = 'fv_0.9x1.25'
-  intermediate_cubed_sphere_fname = '../bin_to_cube/gmted2010_modis-ncube3000-stitch.nc'
+  intermediate_cubed_sphere_fname = '/project/amp/juliob/Topo-generate-devel/Topo/inputdata/cubed-sphere-topo/gmted2010_modis-ncube3000-stitch.nc'
   output_fname                    = 'junk'
   externally_smoothed_topo_file   = 'junk'
   lsmooth_terr = .false.

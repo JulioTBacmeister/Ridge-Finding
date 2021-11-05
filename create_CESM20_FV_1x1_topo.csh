@@ -1,9 +1,12 @@
-#!/bin/csh -f
+#!/bin/tcsh
 
+# Assumes you are in the right directory, i.e, the one with F90 files and namelists
+#----------------------------------------------------------------------------------
+mkdir -p output
+
+
+module load compiler/gnu/default
 lgnu
-
-cd /project/amp/juliob/Topo-generate-devel/Topo/cube_to_target-creates-CESM2.0-topo/
-
 gmake clean
 gmake
 
