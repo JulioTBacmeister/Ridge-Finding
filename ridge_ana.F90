@@ -1,3 +1,5 @@
+!!!!!++11/1/21    #undef SUBSETDBG
+#define SUBSETDBG
 #undef SUBSETDBG
 module ridge_ana
 
@@ -23,11 +25,18 @@ public nsubr,grid_length_scale,fallq_target
 
 public peak_type
 
-  REAL, allocatable  :: MXVRX(:),MXDIS(:),MNSLP(:),ANGLX(:),ANISO(:),XS(:),YS(:)
+!===============================================================================
+!These quantities will be on ridge-based "list"
+  REAL, allocatable  :: MXVRX(:),MXDIS(:),MNSLP(:),ANGLX(:),ANISO(:),XS(:),YS(:) 
   REAL, allocatable  :: XSPK(:),YSPK(:),MXDS0(:),MXDS1(:),SFT0(:),SFT1(:)
   REAL, allocatable  :: PKHTS(:),VLDPS(:),RWPKS(:),RWVLS(:),ANGLL(:)
   REAL, allocatable  :: BSVAR(:),HWDTH(:),NPKS(:),NVLS(:),MXVRY(:)
   REAL, allocatable  :: RISEQ(:),FALLQ(:),ANIXY(:),MXDSP(:),CLNGTH(:),MXDS2(:)
+!++11/1/21
+  REAL, allocatable  :: rdg_profiles(:,:) , crst_profiles(:,:)
+  INTEGER, allocatable ::  MyPanel(:)
+!================================================================================
+
 
     REAL(KIND=dbl_kind), allocatable ::  ALP0(:),BET0(:),LAT0(:),LON0(:)
     REAL(KIND=dbl_kind), allocatable ::  ALP1(:),BET1(:),LAT1(:),LON1(:)
@@ -264,10 +273,17 @@ close( unit=811)
 !===================================================================================================
 
 subroutine find_ridges ( terr_dev, terr_raw, ncube, nhalo, nsb, nsw) ! , npeaks, peaks )
-!------------------------------------------------
-!  INPUTS.
-!      NSW = size of window used for ridge analysis
-!      
+!---------------------------------------------------------------------
+!  Key INPUTS.
+!      NSW: = HALF-size of square window used for ridge analysis. Subsquares of
+!             topo are created and fed to ridge analysis scheme ANISO_ANA, e.g, 
+!                    suba    = terr_dev_halo_r4( i-nsw:i+nsw , j-nsw:j+nsw, np )
+!             NSW winds up in file names, e.g., here where nsw=42
+!                    fv_0.9x1.25_nc3000_Nsw042_Nrs008_Co060_Fi001_20211102.nc
+!             The current thought (11/2021) is that NSW should be about 
+!             SQRT(2)*coarse_smoothing_radius, i.e., inscribed square (Note units
+!             are ~3km pixel-lengths). This is refected in example filename 'Co60'.
+!----------------------------------------------------------------------
 
 
     !type (peak_type), dimension(npeaks), intent(inout) ::  peaks
@@ -356,21 +372,31 @@ write(*,*) " SHAPE ", shape( peaks%i )
 
       ncube_halo = size( terr_halo_r4, 1)
 
-
-   call alloc_ridge_qs(npeaks)
+!++11/1/21
+!   call alloc_ridge_qs(npeaks)
+   call alloc_ridge_qs(npeaks , NSW)
  
    do ipk = 1,npeaks
         i  = peaks(ipk)%i
         j  = peaks(ipk)%j
         np = peaks(ipk)%ip
+!++11/1/21
+        MyPanel( ipk ) = np  ! could just write peaks%ip but WTF        
+
 #if 0
                 if  ( ((np==4).and.(i>300).and.(i<2400).and.(j>2000)) .or. &
                       ((np==4).and.(i>1800).and.(i<2300).and.(j>500).and.(j<1500)) .or. &
                       ((np==2).and.(i>900).and.(i<2000).and.(j>2200).and.(j<2800))  )  then
                           write(*,901,advance='no')  i,j,np
 #endif       
-#ifdef SUBSETDBG
+#if 0
                 if  ( ((np==4).and.(i>1300).and.(i<2400).and.(j>2000).and.(j<2400))  )  then
+                          write(*,901,advance='no')  i,j,np
+#endif       
+#ifdef SUBSETDBG
+                !!if  ( ((np==4).and.(i>300).and.(i<2400).and.(j>1700))  )  then  ! Most of N America south of Canada
+                !!          write(*,901,advance='no')  i,j,np
+                if  ( ((np==5).and.(i>0).and.(i<1000).and.(j>1600)).and.(j<2300)  )  then  ! South America Antarctic Pen
                           write(*,901,advance='no')  i,j,np
 #endif       
         suba    = terr_dev_halo_r4( i-nsw:i+nsw , j-nsw:j+nsw, np )
@@ -392,7 +418,9 @@ write(*,*) " SHAPE ", shape( peaks%i )
 
 #if 1
 
-    ofile$ = "TEST.dat"
+!++11/1/21
+!    ofile$ = "TEST.dat"
+    ofile$ = "Ridge_list.dat"
     OPEN (unit = 31, file= trim(ofile$) ,form="UNFORMATTED" )
 
     write(31) ncube_halo , grid_length_scale
@@ -400,8 +428,8 @@ write(*,*) " SHAPE ", shape( peaks%i )
     write(31) terr_halo_r4
     write(31) terr_dev_halo_r4
 
-write(31) npeaks
-write(31) xs,ys
+write(31) npeaks  , NSW
+write(31) xs,ys  , MyPanel
 write(31) mxvrx
 write(31) bsvar
 write(31) mxdis
@@ -437,9 +465,20 @@ write(31) clngth
 
 write(31) mxds2
 
-   CLOSE(31)
+!++11/1/21
+write(31) rdg_profiles
+write(31) crst_profiles
 
+   CLOSE(31)
 #endif
+
+!++11/1/21
+#ifdef SUBSETDBG
+       !write(*,*)  " Bomb out of code after writing Ridge_list "
+       !                    STOP
+       write(*,*)  " Wrote ridge list going ON ...  "
+#endif       
+
 
  
 
@@ -458,6 +497,9 @@ end subroutine find_ridges
   real, allocatable :: RT(:,:),RTX(:),XRT(:),RTXMN(:),RTXSLP(:),rtx_dt(:)
   real, allocatable :: PKLC(:), RTY(:),RTRW(:,:),RTRWX(:),DERTX(:),DERTY(:),CUSP(:),face(:)
   real, allocatable :: silux(:), sillx(:), siluy(:), silly(:)
+
+!++ 11/1/21
+  real, allocatable :: rdg_profile(:,:),crst_profile(:,:)
 
   logical,allocatable :: lhgts(:),lflats(:),lsides(:)
   logical :: Keep_Cuestas=.true.
@@ -512,6 +554,9 @@ end subroutine find_ridges
   allocate( Lflats( nsw+1  ) )
   allocate( Lsides( nsw+1  ) )
 
+!++ 11/1/21
+  allocate( rdg_profile(nsw+1,NANG) )
+  allocate( crst_profile(nsw+1,NANG) )
 
 
 
@@ -536,7 +581,7 @@ end subroutine find_ridges
         vvaa(:)=0
         qual(:)=0.
         npkx(:)=0.
-        do l=1,nang
+        do L=1,nang
                                            ! Rotate 2D topography by ANG
            ang = (L-1)*(180./nang)
            rt  = rotby3( suba, 2*nsw+1 , ang )
@@ -654,10 +699,13 @@ end subroutine find_ridges
               hwdx(L) = -1.
            endif
 #endif
-
-           ipkh    = MAXLOC( RTX ) ! index of peak height in rotated topo avg cross-section
+           !===============================================================
+           ! Calculate relative horz displacements of actual peaks and 
+           ! valleys along ridge-perp X (11/2/21)
+           !===============================================================
+           ipkh    = MAXLOC( RTX ) ! index of MAX peak height in rotated topo avg cross-section
            xpkh(L) = XRT( ipkh(1) )-xmn
-           ivld    = MINLOC( RTX ) ! index of valley depth in rotated topo avg cross-section
+           ivld    = MINLOC( RTX ) ! index of MIN valley depth in rotated topo avg cross-section
            xvld(L) = XRT( ivld(1) )-xmn
 
 
@@ -710,9 +758,12 @@ end subroutine find_ridges
            end do
 
 
+!++11/1/21
+           rdg_profile( : , L )  = rtx( : )
+           crst_profile( : , L ) = rty( : )
 
 
-        end do ! LOOP over angles
+        end do ! LOOP over angles - index=L
 
 
 
@@ -738,6 +789,12 @@ end subroutine find_ridges
 
         ang00      =  (iorn(1)-1)*(180./nang)*(PI/180.)
 
+        !=========================================
+        ! These are attempts to get closer 
+        ! to the ridge-line location in the
+        ! in the profile. xpkh is a deviation
+        ! along the ridge-perp X-coord. (11/2/21)
+        !==========================================
         xspk(ipk)  = xs(ipk)  + xpkh(iorn(1))*cos( ang00 )
         yspk(ipk)  = ys(ipk)  - xpkh(iorn(1))*sin( ang00 )
 
@@ -749,6 +806,11 @@ end subroutine find_ridges
         riseq(ipk) = risex( iorn(1) )
         fallq(ipk) = fallx( iorn(1) )
         clngth(ipk)= lngth( iorn(1) )
+
+!++ 11/1/21
+        rdg_profiles(:,ipk)  = rdg_profile( : , iorn(1) )
+        crst_profiles(:,ipk) = crst_profile( : , iorn(1) )
+        
 #endif
 
 #if 0
@@ -800,6 +862,10 @@ endif
   deallocate( sillx)
   deallocate( silly)
 
+!++11/1/21
+  deallocate( rdg_profile )
+  deallocate( crst_profile )
+
 end subroutine ANISO_ANA
 !====================================
    subroutine testpaintridge( ncube, &
@@ -820,7 +886,7 @@ end subroutine ANISO_ANA
       integer :: i,ix,iy,ip,ii,counti,norx,nory,i_last,isubr,iip,j,ipk,npeaks
       real(r8):: wt
       real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: tmpx6
-      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: mxdisC , anglxC, anisoC, hwdthC
+      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: mxdisC , anglxC, anisoC, hwdthC, profiC
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: mxvrxC , mxvryC, bsvarC, clngtC, blockC
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: cwghtC , itrgtC, fallqC, riseqC, rwpksC
       real(KIND=dbl_kind), dimension(ncube*ncube)   :: dA
@@ -880,6 +946,9 @@ end subroutine ANISO_ANA
      tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, block_fill=.true.   )
      blockC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
+     !tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, profile_fill=.true.   )
+     !profiC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+
 
        write( ofile$ , &
        "('./output/remap_nc',i0.4, '_Nsw',i0.3,'_Nrs',i0.3  &
@@ -920,6 +989,13 @@ end subroutine testpaintridge
    subroutine remapridge2target(area_target,target_center_lon,target_center_lat,  &
          weights_eul_index_all,weights_lgr_index_all,weights_all,ncube,jall, &
          nreconstruction,ntarget,nhalo,nsb,nsw,nsmcoarse,nsmfine,lzerovalley)
+!==========================================
+! Some key inputs
+!      NSW:  = 'nwindow_halfwidth' which comes from topo namelist, but should always be 
+!              about SQRT(2)*coarse_smoothing_radius (in # of 3km pixels), i.e., size of
+!              inscribed square for rotation etc.. Winds up in file names, e.g., 
+!                      fv_0.9x1.25_nc3000_Nsw042_Nrs008_Co060_Fi001_20211102.nc
+!===========================================
 
       use shr_kind_mod, only: r8 => shr_kind_r8
       use remap
@@ -940,7 +1016,8 @@ end subroutine testpaintridge
       integer :: i,ix,iy,ip,ii,counti,norx,nory,i_last,isubr,iip,j,ipk,npeaks
       real(r8):: wt
       real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: tmpx6
-      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: mxdisC , anglxC, anisoC, hwdthC
+!++11/3/21 Added profiC
+      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: mxdisC , anglxC, anisoC, hwdthC, profiC
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: mxvrxC , mxvryC, bsvarC, clngtC, blockC
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: cwghtC , itrgtC, fallqC, riseqC, rwpksC
       real(KIND=dbl_kind), dimension(ncube*ncube)   :: dA
@@ -1049,7 +1126,19 @@ end subroutine testpaintridge
      tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, block_fill=.true.   )
      blockC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
+!++11/3/21
+     tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, profile_fill=.true.   )
+     profiC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+!--11/3/21
+
     i_last = -9999
+
+!++jtb (10/22/21) 
+! Previous calculation of wghts_target was bad because "flat" areas had ANGLX=0.
+! Fix by setting ANGLX to "bad" value in "flats" before remap
+     where( mxdisC < 0.1 )
+       anglxC = -999.
+     end where
 
 !++jtb 
 ! 
@@ -1105,25 +1194,11 @@ end subroutine testpaintridge
     ! Make fallq positive
     fallq_target = -1.*fallq_target
 
-#if 0
-    where( wghts_target > 1.e-15 )
-        aniso_target = aniso_target / wghts_target
-        anglx_target = anglx_target / wghts_target
-        mxdis_target = mxdis_target / wghts_target
-        hwdth_target = hwdth_target / wghts_target
-        mxvrx_target = mxvrx_target / wghts_target
-        mxvry_target = mxvry_target / wghts_target
-        bsvar_target = bsvar_target / wghts_target
-     elsewhere
-        aniso_target = 0.
-        anglx_target = -9000.
-        mxdis_target = 0.
-        hwdth_target = 0.
-        mxvrx_target = 0.
-        mxvry_target = 0.
-        bsvar_target = 0.
-     end where
-#else
+
+     !==========================================
+     ! Note: This weighting by CWGHT saved your 
+     ! ass in the presence of the WGHTS bug.
+     !==========================================
      where( cwght_target > 1.e-15 )
         !clngt_target = clngt_target / cwght_target
         mxdis_target = mxdis_target / cwght_target
@@ -1147,8 +1222,6 @@ end subroutine testpaintridge
         mxvry_target = 0.
         bsvar_target = 0.
      end where
-#endif
-
 
 #if 1
     anixy_target = mxvrx_target /( mxvrx_target + mxvry_target + 0.0001 )
@@ -1183,6 +1256,8 @@ write(911) itrgtC
 write(911) fallqC
 write(911) riseqC
 write(911) xs,ys,xspk,yspk,peaks%i,peaks%j
+
+write(911) profiC
 
 close(911)
 
@@ -1379,6 +1454,15 @@ close(911)
         clngt_target(i,JJ) = tmp2( insrt(JJ) )
      end do
 
+!++ 11/2/21
+! Never sorted count variable!!
+     do JJ = 1,nsubr
+        tmp2(JJ) =  count_target(i,JJ)
+     end do
+     do JJ = 1,nsubr
+        count_target(i,JJ) = tmp2( insrt(JJ) )
+     end do
+
   end do
 
 
@@ -1419,8 +1503,9 @@ function mapridge2cube ( a, norx, nory,xs,ys,xv,yv,ncube,nhalo,nsb ) result( axc
 end function mapridge2cube
 
 !======================================
-
-function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, crest_weight, block_fill ) result( axc )
+!++11/3/21 Added profile_fill
+function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, crest_weight, & 
+                           block_fill, profile_fill ) result( axc )
    
        integer, intent(in) :: ncube,nhalo,nsb,nsw
        real, intent(in), dimension( size(xs) ) :: axr
@@ -1428,6 +1513,7 @@ function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, 
        logical, optional, intent(in) :: crest_length
        logical, optional, intent(in) :: crest_weight
        logical, optional, intent(in) :: block_fill
+       logical, optional, intent(in) :: profile_fill
 
        real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: axc
        real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: qc
@@ -1436,7 +1522,7 @@ function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, 
        real, dimension(-nsw:nsw)          :: xq,yq
        real :: rotangl,dsq,ssq
        integer :: i,j,x0,x1,y0,y1,ip,ns0,ns1,ii,jj,norx,nory,nql,ncl,nhw,ipk,npeaks,jw
-       logical :: lcrestln,lcrestwt,lblockfl
+       logical :: lcrestln,lcrestwt,lblockfl,lprofifl
 !---------------------------------------------------
 
 
@@ -1457,6 +1543,11 @@ write(*,*) " in paintridge "
     else
        lblockfl = .false.
     endif
+    if(present(profile_fill)) then
+      lprofifl = profile_fill
+    else
+       lprofifl = .false.
+    endif
 
     DO i=-nsw,nsw
        xq(i)=i
@@ -1469,13 +1560,19 @@ write(*,*) " in paintridge "
 
      npeaks=size(mxdis)
 
+!==========================================================
+! This looks pointless since suba is always zeroed below.
+!==========================================================
   if ( .not.(Lcrestln) ) then
    suba(:,:)=0.
    suba( -nsw/4-1:nsw/4+1 , -nsw/2-1:nsw/2+1 ) = 1.
-   !else 
-   ! suba( 0 , -nsw/2-1:nsw/2+1 ) = 1.
   endif  
 
+!===============================================================
+! Set-up 2*NSW+1 sub1 square for future reconcilaition/annealing.
+! The array SUB1 is supposed to be =1.0 for all points within NSW 
+! of center, and =0.0 for points further out.
+!===============================================================
   sub1(:,:)=0.
   nql = INT( nsw/1.0 )
     DO j=-nsw,nsw
@@ -1485,13 +1582,53 @@ write(*,*) " in paintridge "
     END DO
     END DO
  
+!===============================
+! Initialize cube sphere arrays 
+! for "painting"
+!================================
   axc = 0.
   qc  = 0.
 
 
-
+!==================================================================
+! Notes for 11/3/2021
+!  In the following we create arrays suba(-nsw:nsw, -nsw:nsw)  
+!  with normalized magnitudes 0.0-1.0. Here X (dim1) is the 
+!  cross-ridge direction while Y (dim2) is the long-crest 
+!  direction.  The suba array is then rotated into the correct
+!  orientation for the current peak/feature, resulting in subr. The 
+!  starting suba array can take on different shapes depending on task. 
+!  suba is always ZERO for Y indices further than ncl=CLNGTH/2 from
+!  center.  For all tasks except block_fill (and maybe a future
+!  profile_fill), suba is 0 everywhere except for suba(0,-ncl:ncl)=1.0,
+!  i.e., a one-pixel line along the ridge crest.  
+!
+!  After rotation of suba to subr, subr (still =0.0-1.0) may be 
+!  multiplied by a peak/feature-list quantity passed in arguments as 
+!  axr( size(xs)(npks?) ) to create the array subdis(-nsw:nsw,-nsw:nsw), 
+!  which may now have physical units, e.g., meters if axr=mxdis.
+!
+!  After subdis has been created it is "painted" onto a "haloed" 
+!  (ncube+halo,ncube+halo,6) output array AXC. Multiple paints 
+!  are possible due to many redundant features. The "best" painting 
+!  is selected based the closeness of the feature center (xs,ys) to
+!  its diagnosed peak-ridgecrest location (xspk,yspk)
+!=======================================================================
   do ipk=1,npeaks
         if(mxdis(ipk)>=1.0) then
+!++11/3/21 -nsw/2:nsw/2 ==> 
+            if(Lprofifl) then
+               suba(:,:) = 0.
+               ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
+               !suba( -nhw:nhw , -ncl:ncl ) = 1.        
+               do jw=-ncl,ncl
+                  suba(-nsw/2: , jw  ) = rdg_profiles(:,ipk)
+               end do
+               rotangl = - anglx(ipk) 
+               subr = rotby3( suba , 2*nsw+1, rotangl )
+               subdis = subr 
+             end if
+!--11/3/21
              if(Lblockfl) then
                suba(:,:) = 0.
                ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
@@ -1520,7 +1657,7 @@ write(*,*) " in paintridge "
                subr = rotby3( suba , 2*nsw+1, rotangl )
                subdis = subr * axr(ipk)
              end if
-             if( (.not.(Lcrestln)).and.(.not.(Lcrestwt)).and.(.not.(Lblockfl)) ) then
+             if( (.not.(Lcrestln)).and.(.not.(Lcrestwt)).and.(.not.(Lblockfl)).and.(.not.(Lprofifl)) ) then
                suba(:,:) = 0.
                ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
                suba( 0 , -ncl:ncl ) = 1.        
@@ -1529,6 +1666,13 @@ write(*,*) " in paintridge "
                subdis =  subr * axr(ipk)
              endif
 
+             !======================================================
+             ! Scale sub1 by 1 minus normalized distance 
+             ! from current feature location (xs,ys) to diagnosed 
+             ! peak/ridge location (xspk,yspk).  Idea here is
+             ! that we want features that are also close to actual
+             ! peaks to "win" when creating skeletons.
+             !======================================================
              dsq    = 1.0 - SQRT( (xs(ipk)-xspk(ipk))**2 + (ys(ipk)-yspk(ipk))**2 )/nsw
              subq   = sub1 * dsq
 
@@ -1807,9 +1951,13 @@ subroutine paintridgeoncube ( ncube,nhalo,nsb,nsw , terr  )
 
 !==================================================================
 
- subroutine alloc_ridge_qs (npeaks)
+!++11/1/21
+! subroutine alloc_ridge_qs (npeaks)
+ subroutine alloc_ridge_qs (npeaks , NSW )
 
   integer, intent(in) :: npeaks
+!++11/1/21
+  integer, intent(in) :: NSW
 
   allocate( xs(npeaks) )
   allocate( ys(npeaks) )
@@ -1891,6 +2039,13 @@ subroutine paintridgeoncube ( ncube,nhalo,nsb,nsw , terr  )
           allocate( LAT1(npeaks))
               LAT1  = -9999.d+0
 
+!++11/1/21
+  allocate( rdg_profiles( nsw+1, npeaks ) )
+       rdg_profiles(:,:)=0.d+0
+  allocate( crst_profiles( nsw+1, npeaks ) )
+       crst_profiles(:,:)=0.d+0
+   allocate( MyPanel( npeaks ) )
+       MyPanel = -1
 
 end subroutine alloc_ridge_qs
 
