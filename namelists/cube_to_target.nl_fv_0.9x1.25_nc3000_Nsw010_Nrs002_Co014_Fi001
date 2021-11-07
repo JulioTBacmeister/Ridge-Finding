@@ -1,0 +1,21 @@
+&topoparams
+  grid_descriptor_fname           = '/project/amp/juliob/Topo-generate-devel/Topo/inputdata/grid-descriptor-file/fv_0.9x1.25.nc'
+  output_grid                     = 'fv_0.9x1.25'
+  intermediate_cubed_sphere_fname = '/project/amp/juliob/Topo-generate-devel/Topo/inputdata/cubed-sphere-topo/gmted2010_modis-ncube3000-stitch.nc'
+  output_fname                    = 'junk'
+  externally_smoothed_topo_file   = 'junk'
+  lsmooth_terr = .false.
+  lexternal_smooth_terr = .false.
+  lzero_out_ocean_point_phis = .false.
+  lzero_negative_peaks = .true.
+  lsmooth_on_cubed_sphere = .true.
+  ncube_sph_smooth_coarse = 14
+  ncube_sph_smooth_fine = 1
+  ncube_sph_smooth_iter = 1
+  lfind_ridges = .true.
+  lridgetiles = .false.
+  nwindow_halfwidth = 10
+  nridge_subsample = 2
+  lread_smooth_topofile = .true. 
+/
+
