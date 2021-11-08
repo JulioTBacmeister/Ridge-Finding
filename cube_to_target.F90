@@ -251,7 +251,8 @@ program convterr
          !----------------------------------------------------------------------
 
         call find_local_maxes ( terr_dev, ncube, nhalo, nsb, nsw ) !, npeaks, peaks )
-        call find_ridges ( terr_dev, terr, ncube, nhalo, nsb, nsw) ! !, npeaks, peaks )
+        call find_ridges ( terr_dev, terr, ncube, nhalo, nsb, nsw, &  
+                           ncube_sph_smooth_coarse   , ncube_sph_smooth_fine )
 
 #if 0
          call testpaintridge( ncube, &

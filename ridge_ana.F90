@@ -1,5 +1,5 @@
 !!!!!++11/1/21    #undef SUBSETDBG
-#define SUBSETDBG
+!!#define SUBSETDBG
 #undef SUBSETDBG
 module ridge_ana
 
@@ -260,19 +260,21 @@ write(*,*) ' PANEL = ',NP
     end do
 
 write(*,*) " two sizes of peaks ", npeaks, ipk-1
-
 write(*,*) " SHAPE ", shape( peaks%i )
 
+#if 0
 write(811) npeaks
 write(811) peaks%i, peaks%j, peaks%ip
 close( unit=811)
-
+#endif
 
  end subroutine find_local_maxes
 
 !===================================================================================================
 
-subroutine find_ridges ( terr_dev, terr_raw, ncube, nhalo, nsb, nsw) ! , npeaks, peaks )
+subroutine find_ridges ( terr_dev, terr_raw, ncube, nhalo, nsb, nsw,     & 
+!                        ++ following used only for file name construction -11/8/21
+                         ncube_sph_smooth_coarse, ncube_sph_smooth_fine )
 !---------------------------------------------------------------------
 !  Key INPUTS.
 !      NSW: = HALF-size of square window used for ridge analysis. Subsquares of
@@ -294,8 +296,10 @@ subroutine find_ridges ( terr_dev, terr_raw, ncube, nhalo, nsb, nsw) ! , npeaks,
             DIMENSION(ncube,ncube,6), INTENT(IN) :: terr_raw
 
        INTEGER (KIND=int_kind), INTENT(IN) :: ncube, nhalo, nsb, nsw !, npeaks
-       INTEGER (KIND=int_kind) :: i,j,np,ncube_halo,ipanel,N,norx,nory,ip,ipk,npeaks
+       !++ following used only for file name construction -11/8/21
+       INTEGER (KIND=int_kind), INTENT(IN) ::ncube_sph_smooth_coarse,ncube_sph_smooth_fine
 
+       INTEGER (KIND=int_kind) :: i,j,np,ncube_halo,ipanel,N,norx,nory,ip,ipk,npeaks
 
 
     REAL (KIND=dbl_kind),                                            &
@@ -394,10 +398,10 @@ write(*,*) " SHAPE ", shape( peaks%i )
                           write(*,901,advance='no')  i,j,np
 #endif       
 #ifdef SUBSETDBG
-                !!if  ( ((np==4).and.(i>300).and.(i<2400).and.(j>1700))  )  then  ! Most of N America south of Canada
-                !!          write(*,901,advance='no')  i,j,np
-                if  ( ((np==5).and.(i>0).and.(i<1000).and.(j>1600)).and.(j<2300)  )  then  ! South America Antarctic Pen
+                if  ( ((np==4).and.(i>300).and.(i<2400).and.(j>1700))  )  then  ! Most of N America south of Canada
                           write(*,901,advance='no')  i,j,np
+                !!if  ( ((np==5).and.(i>0).and.(i<1000).and.(j>1600)).and.(j<2300)  )  then  ! South America Antarctic Pen
+                !!          write(*,901,advance='no')  i,j,np
 #endif       
         suba    = terr_dev_halo_r4( i-nsw:i+nsw , j-nsw:j+nsw, np )
         subarw  = terr_halo_r4( i-nsw:i+nsw , j-nsw:j+nsw, np )
@@ -418,9 +422,16 @@ write(*,*) " SHAPE ", shape( peaks%i )
 
 #if 1
 
+!++11/8/21
+       write( ofile$ , &
+       "('./output/Ridge_list',i0.4, '_Nsw',i0.3,  &
+       '_Co',i0.3,'_Fi',i0.3, '.dat')" ) & 
+        ncube, nsw , ncube_sph_smooth_coarse, ncube_sph_smooth_fine 
+
 !++11/1/21
 !    ofile$ = "TEST.dat"
-    ofile$ = "Ridge_list.dat"
+!    ofile$ = "Ridge_list.dat"
+
     OPEN (unit = 31, file= trim(ofile$) ,form="UNFORMATTED" )
 
     write(31) ncube_halo , grid_length_scale
