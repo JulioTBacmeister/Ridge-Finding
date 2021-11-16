@@ -1,4 +1,4 @@
-!!!!!++11/1/21    #undef SUBSETDBG
+!!!!!++11/1/21 
 !!#define SUBSETDBG
 #undef SUBSETDBG
 module ridge_ana
@@ -35,6 +35,8 @@ public peak_type
 !++11/1/21
   REAL, allocatable  :: rdg_profiles(:,:) , crst_profiles(:,:)
   INTEGER, allocatable ::  MyPanel(:)
+!++11/15/21
+  REAL, allocatable  :: UNIQID(:)
 !================================================================================
 
 
@@ -398,10 +400,10 @@ write(*,*) " SHAPE ", shape( peaks%i )
                           write(*,901,advance='no')  i,j,np
 #endif       
 #ifdef SUBSETDBG
-                if  ( ((np==4).and.(i>300).and.(i<2400).and.(j>1700))  )  then  ! Most of N America south of Canada
-                          write(*,901,advance='no')  i,j,np
-                !!if  ( ((np==5).and.(i>0).and.(i<1000).and.(j>1600)).and.(j<2300)  )  then  ! South America Antarctic Pen
+                !!if  ( ((np==4).and.(i>300).and.(i<2400).and.(j>1700))  )  then  ! Most of N America south of Canada
                 !!          write(*,901,advance='no')  i,j,np
+                if  ( ((np==5).and.(i>0).and.(i<1000).and.(j>1600)).and.(j<2600)  )  then  ! South America Antarctic Pen
+                          write(*,901,advance='no')  i,j,np
 #endif       
         suba    = terr_dev_halo_r4( i-nsw:i+nsw , j-nsw:j+nsw, np )
         subarw  = terr_halo_r4( i-nsw:i+nsw , j-nsw:j+nsw, np )
@@ -424,7 +426,7 @@ write(*,*) " SHAPE ", shape( peaks%i )
 
 !++11/8/21
        write( ofile$ , &
-       "('./output/Ridge_list',i0.4, '_Nsw',i0.3,  &
+       "('./output/Ridge_list_nc',i0.4, '_Nsw',i0.3,  &
        '_Co',i0.3,'_Fi',i0.3, '.dat')" ) & 
         ncube, nsw , ncube_sph_smooth_coarse, ncube_sph_smooth_fine 
 
@@ -821,7 +823,21 @@ end subroutine find_ridges
 !++ 11/1/21
         rdg_profiles(:,ipk)  = rdg_profile( : , iorn(1) )
         crst_profiles(:,ipk) = crst_profile( : , iorn(1) )
-        
+!--
+      
+!++11/15/21
+        uniqid(ipk) = (1.0d+0) * ipk
+!--
+
+!++11/15/21
+!===============================================================
+!  Could be more direct and intuitive to relocate xspk and yspk,
+!  and to estimate ridge width and crest length here, from saved 
+!  ridge profiles in X and Y.  In fact lots of simplification 
+!  could follow.
+!===============================================================
+
+  
 #endif
 
 #if 0
@@ -1032,6 +1048,8 @@ end subroutine testpaintridge
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: mxvrxC , mxvryC, bsvarC, clngtC, blockC
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: cwghtC , itrgtC, fallqC, riseqC, rwpksC
       real(KIND=dbl_kind), dimension(ncube*ncube)   :: dA
+!++11/15/21 Added uniqidC
+      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: uniqidC
 
       CHARACTER(len=1024) :: ofile$
       character(len=8)  :: date$
@@ -1141,6 +1159,12 @@ end subroutine testpaintridge
      tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, profile_fill=.true.   )
      profiC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 !--11/3/21
+
+
+!++11/15/21
+     tmpx6 = paintridge2cube ( uniqid ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     uniqidC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+
 
     i_last = -9999
 
@@ -1268,7 +1292,10 @@ write(911) fallqC
 write(911) riseqC
 write(911) xs,ys,xspk,yspk,peaks%i,peaks%j
 
+!++11/3/21
 write(911) profiC
+!++11/15/21
+write(911) uniqidC
 
 close(911)
 
@@ -2057,6 +2084,10 @@ subroutine paintridgeoncube ( ncube,nhalo,nsb,nsw , terr  )
        crst_profiles(:,:)=0.d+0
    allocate( MyPanel( npeaks ) )
        MyPanel = -1
+
+!++11/15/21
+  allocate( UNIQID( npeaks ) )
+       UNIQID(:)=-9999.d+0
 
 end subroutine alloc_ridge_qs
 
