@@ -9,3 +9,5 @@ v1.0.1 Minor workflow mods to shell scripts and FV 1x1 namelist. Recreates B4B c
   create_CESM20_FV_1x1_topo.csh
 
 v2.0.0 WGHTS corrected.  Imprtance sorting now works. My son thinks I am a nerd. More outputs added to ridge_ana.F90 
+
+made this branch "v2_branch" (11/19/21) Let's see what happens now.
