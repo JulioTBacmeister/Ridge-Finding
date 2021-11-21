@@ -1,5 +1,5 @@
 !!!!!++11/1/21 
-!!#define SUBSETDBG
+!#define SUBSETDBG
 #undef SUBSETDBG
 module ridge_ana
 
@@ -32,8 +32,8 @@ public peak_type
   REAL, allocatable  :: PKHTS(:),VLDPS(:),RWPKS(:),RWVLS(:),ANGLL(:)
   REAL, allocatable  :: BSVAR(:),HWDTH(:),NPKS(:),NVLS(:),MXVRY(:)
   REAL, allocatable  :: RISEQ(:),FALLQ(:),ANIXY(:),MXDSP(:),CLNGTH(:),MXDS2(:)
-!++11/1/21
-  REAL, allocatable  :: rdg_profiles(:,:) , crst_profiles(:,:)
+!++11//21
+  REAL, allocatable  :: rdg_profiles(:,:) , crst_profiles(:,:), crst_silhous(:,:)
   INTEGER, allocatable ::  MyPanel(:)
 !++11/15/21
   REAL, allocatable  :: UNIQID(:)
@@ -326,6 +326,8 @@ subroutine find_ridges ( terr_dev, terr_raw, ncube, nhalo, nsb, nsw,     &
     REAL(KIND=dbl_kind)  :: lon_r8, lat_r8, cosll, dx, dy, dcube2, ampfsm,dbet,dalp,diss,diss00
 
     CHARACTER(len=1024) :: ofile$,ve$
+    character(len=8)    :: date$
+    character(len=10)   :: time$
 
     npeaks = size( peaks% i )
    
@@ -402,7 +404,14 @@ write(*,*) " SHAPE ", shape( peaks%i )
 #ifdef SUBSETDBG
                 !!if  ( ((np==4).and.(i>300).and.(i<2400).and.(j>1700))  )  then  ! Most of N America south of Canada
                 !!          write(*,901,advance='no')  i,j,np
-                if  ( ((np==5).and.(i>0).and.(i<1000).and.(j>1600)).and.(j<2600)  )  then  ! South America Antarctic Pen
+                !!if  ( ((np==5).and.(i>0).and.(i<1000).and.(j>1600)).and.(j<2600)  )  then  ! South America Antarctic Pen
+                !!          write(*,901,advance='no')  i,j,np
+                if  (  ( (np==5).and.(i>0).and.(i<1000).and.(j>1600).and.(j<2600)  ) .or. &        !Patagonia+Antarctic Pen+ S Georgia
+                       ( (np==4).and.(i>1900).and.(i<2100).and.(j>1000).and.(j<1200)  ) .or.   &   !Peru
+                       ( (np==4).and.(i>300).and.(i<2400).and.(j>1700).and.(j<3000)  ) .or.   &    !Most of N America south of Canada
+                       ( (np==2).and.(i>800).and.(i<1500).and.(j>2400).and.(j<3000)  ) .or.   &    !Himalaya
+                       ( (np==6).and.(i>1100).and.(i<2000).and.(j>100).and.(j<1100)  )   &         !N Europe
+                                                                       ) then  
                           write(*,901,advance='no')  i,j,np
 #endif       
         suba    = terr_dev_halo_r4( i-nsw:i+nsw , j-nsw:j+nsw, np )
@@ -427,12 +436,14 @@ write(*,*) " SHAPE ", shape( peaks%i )
 !++11/8/21
        write( ofile$ , &
        "('./output/Ridge_list_nc',i0.4, '_Nsw',i0.3,  &
-       '_Co',i0.3,'_Fi',i0.3, '.dat')" ) & 
+       '_Co',i0.3,'_Fi',i0.3 )" ) & 
         ncube, nsw , ncube_sph_smooth_coarse, ncube_sph_smooth_fine 
 
-!++11/1/21
-!    ofile$ = "TEST.dat"
-!    ofile$ = "Ridge_list.dat"
+         !--- get time stamp for output filename
+         !----------------------------------------------------------------------
+         call DATE_AND_TIME( DATE=date$,TIME=time$)
+
+    ofile$  = trim(ofile$)//'_'//date$//'_'//time$(1:4)//'.dat'
 
     OPEN (unit = 31, file= trim(ofile$) ,form="UNFORMATTED" )
 
@@ -481,6 +492,7 @@ write(31) mxds2
 !++11/1/21
 write(31) rdg_profiles
 write(31) crst_profiles
+write(31) crst_silhous
 
    CLOSE(31)
 #endif
@@ -513,12 +525,15 @@ end subroutine find_ridges
 
 !++ 11/1/21
   real, allocatable :: rdg_profile(:,:),crst_profile(:,:)
+!++ 11/16/21
+  real, allocatable :: crst_silhouette(:,:)
 
   logical,allocatable :: lhgts(:),lflats(:),lsides(:)
   logical :: Keep_Cuestas=.true.
   
 
   real :: THETRAD,PI,swt,ang,rotmn,rotvar,mnt,var,xmn,xvr,basmn,basvar,mn2,var2
+  real :: dyr_crest
   integer :: i,j,l,m,n2,mini,maxi,minj,maxj,ns0,ns1,iorn(1),jj, &
             ipkh(1),ivld(1),ift0(1),ift1(1),i2,ii,ipksv(1)
 
@@ -570,6 +585,8 @@ end subroutine find_ridges
 !++ 11/1/21
   allocate( rdg_profile(nsw+1,NANG) )
   allocate( crst_profile(nsw+1,NANG) )
+!++ 11/16/21
+  allocate( crst_silhouette(nsw+1,NANG) )
 
 
 
@@ -774,6 +791,8 @@ end subroutine find_ridges
 !++11/1/21
            rdg_profile( : , L )  = rtx( : )
            crst_profile( : , L ) = rty( : )
+!++11/16/21
+           crst_silhouette( : , L ) = siluy( : )
 
 
         end do ! LOOP over angles - index=L
@@ -802,14 +821,19 @@ end subroutine find_ridges
 
         ang00      =  (iorn(1)-1)*(180./nang)*(PI/180.)
 
+#if 0
         !=========================================
         ! These are attempts to get closer 
         ! to the ridge-line location in the
         ! in the profile. xpkh is a deviation
         ! along the ridge-perp X-coord. (11/2/21)
+        ! -----
+        ! Replacing with call to subr.'ridgescales'
+        ! below (11/17/21)
         !==========================================
         xspk(ipk)  = xs(ipk)  + xpkh(iorn(1))*cos( ang00 )
         yspk(ipk)  = ys(ipk)  - xpkh(iorn(1))*sin( ang00 )
+#endif
 
         mxds0(ipk) = dex0( iorn(1) )
         mxds1(ipk) = dex1( iorn(1) )
@@ -818,26 +842,35 @@ end subroutine find_ridges
 
         riseq(ipk) = risex( iorn(1) )
         fallq(ipk) = fallx( iorn(1) )
-        clngth(ipk)= lngth( iorn(1) )
+        !clngth(ipk)= lngth( iorn(1) )
 
-!++ 11/1/21
+!++ 11//21
         rdg_profiles(:,ipk)  = rdg_profile( : , iorn(1) )
         crst_profiles(:,ipk) = crst_profile( : , iorn(1) )
+        crst_silhous(:,ipk)  = crst_silhouette( : , iorn(1) )
 !--
       
 !++11/15/21
         uniqid(ipk) = (1.0d+0) * ipk
 !--
 
-!++11/15/21
+!++11/15-17/21
 !===============================================================
 !  Could be more direct and intuitive to relocate xspk and yspk,
 !  and to estimate ridge width and crest length here, from saved 
 !  ridge profiles in X and Y.  In fact lots of simplification 
 !  could follow.
+!
+!  Note, we have access to the full 2D topo block in this subr
+!      Deviations: SUBA(2*nsw+1,2*nsw+1)
+!      Raw:        SUBARW( 2*nsw+1, 2*nsw+1)
 !===============================================================
 
-  
+        call ridgescales( nsw, rdg_profiles(:,ipk), crst_silhous(:,ipk), xrt, xmn, &
+                          anglx(ipk), xs(ipk) , ys(ipk), & 
+                          xspk(ipk), yspk(ipk), clngth(ipk) , hwdth(ipk) )
+
+ 
 #endif
 
 #if 0
@@ -894,6 +927,67 @@ endif
   deallocate( crst_profile )
 
 end subroutine ANISO_ANA
+
+!====================================
+!====================================
+
+   subroutine ridgescales( nsw, ridge, crest, xr, xmn, anglx0 , &
+                           xs0 , ys0, xspk0 , yspk0, clngt0, hwdth0 )
+
+    integer , intent(in   )  :: nsw
+    real,     intent(in   )  :: ridge(nsw+1), crest(nsw+1), xr(nsw+1) 
+    real,     intent(in   )  :: xs0,ys0,anglx0,xmn
+    real,     intent(inout)  :: xspk0,yspk0,clngt0,hwdth0
+
+    ! local vars
+    real    :: ang00,xshft,yshft,pcrest(nsw+1),pridge(nsw+1),cran,hran
+    real    :: hwd1,hwd2
+    integer :: ipkh(1)
+    logical :: Lcount(nsw+1)
+
+    ipkh    = MAXLOC( ridge ) ! index of MAX peak height in rotated topo avg cross-section
+    xshft   = XR( ipkh(1) ) - xmn
+
+    ang00   = anglx0 * (PI/180.)
+
+    xspk0   = xs0  + xshft * cos( ang00 )
+    yspk0   = ys0  - xshft * sin( ang00 )
+
+    cran      = MAXVAL(crest) - MINVAL(crest)
+    hran      = MAXVAL(ridge) - MINVAL(ridge)
+ 
+    pcrest(:) = crest(:)  -  MINVAL(crest)
+    where (pcrest < 0.1*cran)
+       pcrest = 0.
+    end where
+   
+    yshft  = sum( xr * pcrest )/( sum( pcrest )+ 0.1 ) - xmn
+
+    xspk0  = xspk0  + yshft *sin( ang00 )
+    yspk0  = yspk0  + yshft *cos( ang00 )
+
+    ! first guess is CLNGT=nsw+1
+    clngt0 = 1.*(nsw+1)
+
+    if (cran >= hran) then
+    ! If cran is as big as hran
+    ! second guess is nsw minus low parts
+    Lcount = ( pcrest < 0.1*cran ) 
+    clngt0 = 1.0*(nsw+1 - count( Lcount ) )
+    endif
+
+    ! adjust hwdth
+    pridge(:) = ridge(:)  -  MINVAL(ridge)
+    ! 2 sided equlivalent "wedge" ceneterd at ipkh
+    hwd1 =  2.* sum( pridge( 1:ipkh(1) ) )  / ( pridge(ipkh(1))+0.1)
+    hwd2 =  2.* sum( pridge( ipkh(1):  ) )  / ( pridge(ipkh(1))+0.1)
+    ! stop goofy results if a plateau exists on one side
+    hwd1 = min( hwd1 , 1.*nsw )
+    hwd2 = min( hwd2 , 1.*nsw )
+
+    hwdth0 = (hwd1 + hwd2)
+
+   end subroutine ridgescales
 !====================================
    subroutine testpaintridge( ncube, &
          nhalo,nsb,nsw,nsmcoarse,nsmfine,lzerovalley)
@@ -1046,8 +1140,8 @@ end subroutine testpaintridge
 !++11/3/21 Added profiC
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: mxdisC , anglxC, anisoC, hwdthC, profiC
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: mxvrxC , mxvryC, bsvarC, clngtC, blockC
-      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: cwghtC , itrgtC, fallqC, riseqC, rwpksC
-      real(KIND=dbl_kind), dimension(ncube*ncube)   :: dA
+      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: cwghtC , itrgtC, fallqC, riseqC, rwpksC, itrgxC
+      real(KIND=dbl_kind), dimension(ncube*ncube)   :: dA    
 !++11/15/21 Added uniqidC
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: uniqidC
 
@@ -1175,6 +1269,9 @@ end subroutine testpaintridge
        anglxC = -999.
      end where
 
+     itrgxC = -1
+
+
 !++jtb 
 ! 
 !      In the following loop "count" is the index of a piece of 
@@ -1199,7 +1296,7 @@ end subroutine testpaintridge
       iip=(iy-1)*ncube+ix
 
       itrgtC(ii) = i
-
+      if (mxdisC(ii) > 0.1)  itrgxC(ii) = i
       isubr = INT( anglxC(ii) * nsubr/180. ) + 1
 
       if ( (isubr >= 1).and.(isubr <= nsubr) ) then
@@ -1294,8 +1391,9 @@ write(911) xs,ys,xspk,yspk,peaks%i,peaks%j
 
 !++11/3/21
 write(911) profiC
-!++11/15/21
+!++11/15../21
 write(911) uniqidC
+write(911) itrgxC
 
 close(911)
 
@@ -2082,6 +2180,8 @@ subroutine paintridgeoncube ( ncube,nhalo,nsb,nsw , terr  )
        rdg_profiles(:,:)=0.d+0
   allocate( crst_profiles( nsw+1, npeaks ) )
        crst_profiles(:,:)=0.d+0
+  allocate( crst_silhous( nsw+1, npeaks ) )
+       crst_silhous(:,:)=0.d+0
    allocate( MyPanel( npeaks ) )
        MyPanel = -1
 
