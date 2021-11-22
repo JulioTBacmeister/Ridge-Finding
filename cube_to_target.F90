@@ -1201,10 +1201,13 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      rdgqdim(2) = latid
      rdgqdim(3) = nrdgid
 
+#if 0
      status = nf_def_var (foutid,'TERR_UF', NF_DOUBLE, 2, rdgqdim(1:2) , terrufid)
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'SGH_UF', NF_DOUBLE, 2, rdgqdim(1:2) , sghufid)
      if (status .ne. NF_NOERR) call handle_err(status)
+#endif
+
      status = nf_def_var (foutid,'GBXAR', NF_DOUBLE, 2, rdgqdim(1:2) , gbxarid)
      if (status .ne. NF_NOERR) call handle_err(status)
 
@@ -1212,16 +1215,16 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      status = nf_def_var (foutid,'MXDIS', NF_DOUBLE, 3, rdgqdim , mxdisid)
      if (status .ne. NF_NOERR) call handle_err(status)
 
+#if 0
      status = nf_def_var (foutid,'RISEQ', NF_DOUBLE, 3, rdgqdim , riseqid)
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'FALLQ', NF_DOUBLE, 3, rdgqdim , fallqid)
-     if (status .ne. NF_NOERR) call handle_err(status)
-
-
+     if (status .ne. NF_NOERR) call handle_err(status)     
      status = nf_def_var (foutid,'MXVRX', NF_DOUBLE, 3, rdgqdim , mxvrxid)
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'MXVRY', NF_DOUBLE, 3, rdgqdim , mxvryid)
      if (status .ne. NF_NOERR) call handle_err(status)
+#endif
 
      status = nf_def_var (foutid,'ANGLL', NF_DOUBLE, 3, rdgqdim , ang22id)
      if (status .ne. NF_NOERR) call handle_err(status)
@@ -1282,27 +1285,40 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   status = nf_put_att_double (foutid, landfracid, 'missing_value', nf_double, 1, fillvalue)
   status = nf_put_att_double (foutid, landfracid, '_FillValue'   , nf_double, 1, fillvalue)
   status = nf_put_att_text   (foutid, landfracid, 'long_name', 21, 'gridbox land fraction')
-!  status = nf_put_att_text   (foutid, landfracid, 'filter', 40, 'area averaged from 30-sec USGS raw data')
   
   
   status = nf_put_att_text (foutid,latvid,'long_name', 8, 'latitude')
   if (status .ne. NF_NOERR) call handle_err(status)
   status = nf_put_att_text (foutid,latvid,'units', 13, 'degrees_north')
   if (status .ne. NF_NOERR) call handle_err(status)
-  !        status = nf_put_att_text (foutid,latvid,'units', 21, 'cell center locations')
-  !        if (status .ne. NF_NOERR) call handle_err(status)
   
   status = nf_put_att_text (foutid,lonvid,'long_name', 9, 'longitude')
   if (status .ne. NF_NOERR) call handle_err(status)
   status = nf_put_att_text (foutid,lonvid,'units', 12, 'degrees_east')
   if (status .ne. NF_NOERR) call handle_err(status)
-  !        status = nf_put_att_text (foutid,lonvid,'units' , 21, 'cell center locations')
-  !        if (status .ne. NF_NOERR) call handle_err(status)
-  
-!  status = nf_put_att_text (foutid,NF_GLOBAL,'source', 27, 'USGS 30-sec dataset GTOPO30')
-!  if (status .ne. NF_NOERR) call handle_err(status)
-!  status = nf_put_att_text (foutid,NF_GLOBAL,'title',  24, '30-second USGS topo data')
-!  if (status .ne. NF_NOERR) call handle_err(status)
+
+if (Lfind_ridges) then 
+
+  status = nf_put_att_double (foutid, mxdisid, 'missing_value', nf_double, 1, fillvalue)
+  status = nf_put_att_double (foutid, mxdisid, '_FillValue'   , nf_double, 1, fillvalue)
+  status = nf_put_att_text   (foutid, mxdisid, 'long_name' , 48, &
+       'Obtsacle height diagnosed by ridge-finding alg. ')
+  status = nf_put_att_text   (foutid, mxdisid, 'units'     , 1, 'm')
+  status = nf_put_att_text   (foutid, mxdisid, 'filter'    , 4, 'none')
+
+
+  status = nf_put_att_double (foutid, ang22id, 'missing_value', nf_double, 1, fillvalue)
+  status = nf_put_att_double (foutid, ang22id, '_FillValue'   , nf_double, 1, fillvalue)
+  status = nf_put_att_text   (foutid, ang22id, 'long_name' , 48, &
+       'Ridge orientation clockwise from true north     ')
+       !12345678901234567890123456789012345678901234567890
+       !         10        20        30        40        
+  status = nf_put_att_text   (foutid, ang22id, 'units'     , 7, 'degrees')
+  status = nf_put_att_text   (foutid, ang22id, 'filter'    , 4, 'none')
+
+end if
+
+
   call DATE_AND_TIME(DATE=datestring)
   status = nf_put_att_text (foutid,NF_GLOBAL,'history',25, 'Written on date: ' // datestring )
   if (status .ne. NF_NOERR) call handle_err(status)
@@ -1362,6 +1378,7 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing MXDIS data"
 
+#if 0
      print*,"writing RISEQ  data",MINVAL(riseq_target),MAXVAL(riseq_target)
      status = nf_put_var_double (foutid, riseqid, riseq_target)
      if (status .ne. NF_NOERR) call handle_err(status)
@@ -1381,6 +1398,7 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      status = nf_put_var_double (foutid, mxvryid, mxvry_target)
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing MXVRY data"
+#endif
 
      print*,"writing ANGLL  data",MINVAL(ang22_target),MAXVAL(ang22_target)
      status = nf_put_var_double (foutid, ang22id, ang22_target)
@@ -1427,7 +1445,7 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing COUNT data"
 
-
+#if 0
      print*,"writing TERR_UF  data",MINVAL(terr_uf_target),MAXVAL(terr_uf_target)
      status = nf_put_var_double (foutid, terrufid, terr_uf_target)
      if (status .ne. NF_NOERR) call handle_err(status)
@@ -1437,6 +1455,7 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      status = nf_put_var_double (foutid, sghufid, sgh_uf_target)
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing SGH_UF data"
+#endif
 
      print*,"writing GBXAR  data",MINVAL(area_target),MAXVAL(area_target)
      status = nf_put_var_double (foutid, gbxarid, area_target)
