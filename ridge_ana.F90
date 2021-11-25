@@ -35,8 +35,10 @@ public peak_type
 !++11//21
   REAL, allocatable  :: rdg_profiles(:,:) , crst_profiles(:,:), crst_silhous(:,:)
   INTEGER, allocatable ::  MyPanel(:)
+  REAL, allocatable  :: rt_diag(:,:,:), rtx_diag(:,:,:)
 !++11/15/21
-  REAL, allocatable  :: UNIQID(:)
+  REAL, allocatable  :: UNIQID(:),ISOHT(:),ISOWD(:),ISOBS(:)
+
 !================================================================================
 
 
@@ -489,12 +491,42 @@ write(31) clngth
 
 write(31) mxds2
 
-!++11/1/21
+!++11/.../21
 write(31) rdg_profiles
 write(31) crst_profiles
 write(31) crst_silhous
+!write(31) rt_diag
+!write(31) rtx_diag
+
+write(31) isoht
+write(31) isowd
+write(31) isobs
+
+
+
 
    CLOSE(31)
+
+       write( ofile$ , &
+       "('./output/TerrXY_list_nc',i0.4, '_Nsw',i0.3,  &
+       '_Co',i0.3,'_Fi',i0.3 )" ) & 
+        ncube, nsw , ncube_sph_smooth_coarse, ncube_sph_smooth_fine 
+
+         !--- get time stamp for output filename
+         !----------------------------------------------------------------------
+         call DATE_AND_TIME( DATE=date$,TIME=time$)
+
+    ofile$  = trim(ofile$)//'_'//date$//'_'//time$(1:4)//'.dat'
+
+    OPEN (unit = 32, file= trim(ofile$) ,form="UNFORMATTED" )
+
+write(32) npeaks  , NSW
+do ipk=1,npeaks
+   write(32) rtx_diag(:,:,ipk)
+end do
+
+close(32)
+
 #endif
 
 !++11/1/21
@@ -868,7 +900,9 @@ end subroutine find_ridges
 
         call ridgescales( nsw, rdg_profiles(:,ipk), crst_silhous(:,ipk), xrt, xmn, &
                           anglx(ipk), xs(ipk) , ys(ipk), & 
-                          xspk(ipk), yspk(ipk), clngth(ipk) , hwdth(ipk) )
+                          xspk(ipk), yspk(ipk), clngth(ipk) , hwdth(ipk), & 
+                          suba , rt_diag(:,:,ipk),rtx_diag(:,:,ipk), &
+                          isoht(ipk), isowd(ipk), isobs(ipk) )
 
  
 #endif
@@ -932,19 +966,29 @@ end subroutine ANISO_ANA
 !====================================
 
    subroutine ridgescales( nsw, ridge, crest, xr, xmn, anglx0 , &
-                           xs0 , ys0, xspk0 , yspk0, clngt0, hwdth0 )
+                           xs0 , ys0, xspk0 , yspk0, clngt0, hwdth0 , & 
+                           suba , rt_diag0,rtx_diag0, &
+                           isoht0, isowd0 , isobs0 )
 
     integer , intent(in   )  :: nsw
     real,     intent(in   )  :: ridge(nsw+1), crest(nsw+1), xr(nsw+1) 
     real,     intent(in   )  :: xs0,ys0,anglx0,xmn
     real,     intent(inout)  :: xspk0,yspk0,clngt0,hwdth0
+    real,     intent(in   )  :: suba( 2*nsw+1 , 2*nsw+1 )
+    real,     intent(inout)  :: rt_diag0( 2*nsw+1 , 2*nsw+1 )
+    real,     intent(inout)  :: rtx_diag0( nsw+1 , nsw+1 )
+    real,     intent(inout)  :: isowd0 , isoht0, isobs0
 
     ! local vars
     real    :: ang00,xshft,yshft,pcrest(nsw+1),pridge(nsw+1),cran,hran
-    real    :: hwd1,hwd2
-    integer :: ipkh(1)
+    real    :: hwd1,hwd2,isox
+    real    :: rt( 2*nsw+1, 2*nsw+1),rt2d(nsw+1 , nsw+1),iso2d(nsw+1 , nsw+1)
+    integer :: ipkh(1),ns0,ns1,j
     logical :: Lcount(nsw+1)
 
+    ns0=nsw/2+1
+    ns1=ns0+nsw+1
+ 
     ipkh    = MAXLOC( ridge ) ! index of MAX peak height in rotated topo avg cross-section
     xshft   = XR( ipkh(1) ) - xmn
 
@@ -986,6 +1030,54 @@ end subroutine ANISO_ANA
     hwd2 = min( hwd2 , 1.*nsw )
 
     hwdth0 = (hwd1 + hwd2)
+
+
+    rt  = rotby3( suba, 2*nsw+1 , anglx0 )
+
+    ! Take "Y" (and "X")-average of rotated topography.
+    ! Yields topo profile in X ==> RTX
+           !!!ridge = sum( rt(ns0:ns1-1,ns0:ns1-1) , 2 ) /( ns1-ns0 ) ! Y-average 
+           !!!crest = sum( rt(ns0:ns1-1,ns0:ns1-1) , 1 ) /( ns1-ns0 ) ! X-average
+
+    rt_diag0(:,:) =rt(:,:)
+    rtx_diag0(:,:)=rt(ns0:ns1-1,ns0:ns1-1)  !rt(:,:)
+
+    !---------------------------------------------------------
+    ! Now assign some non-ridge variance to an isotropic obstacle
+    !-----
+    ! First make 2D ridge-prism
+    !---------------------------------------------------------
+    do j=1,nsw+1 
+       rt2d(:,j) = ridge(:)
+    end do
+
+    !------------------------------------------------
+    ! Difference of rotated 2D topo from ridge-prism
+    ! = 'isotropic residual'
+    !------------------------------------------------
+    iso2d   = rtx_diag0 - rt2d 
+ 
+    !-----------------------------------
+    !  Average of +ve isotropic residual
+    !-----------------------------------
+    isox    = sum( iso2d , mask = (iso2d > 0.) ) /( count(  (iso2d > 0.) ) + .1 )
+
+    !----------------------------------
+    ! maximum value of isotropic residual
+    !-----------------------------------
+    isoht0  = maxval( iso2d )
+
+    !----------------------
+    ! Length scale 
+    !---------------------
+    isowd0  = sqrt(1.0* count( (iso2d > isox ) ) )
+   
+    !----------------------
+    ! Estimate "base" for 
+    ! isotropic residual
+    !----------------------
+    isobs0  = sum( ridge )/(nsw+1.) 
+   
 
    end subroutine ridgescales
 !====================================
@@ -1143,7 +1235,7 @@ end subroutine testpaintridge
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: cwghtC , itrgtC, fallqC, riseqC, rwpksC, itrgxC
       real(KIND=dbl_kind), dimension(ncube*ncube)   :: dA    
 !++11/15/21 Added uniqidC
-      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: uniqidC
+      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: uniqidC,isohtC
 
       CHARACTER(len=1024) :: ofile$
       character(len=8)  :: date$
@@ -1225,6 +1317,8 @@ end subroutine testpaintridge
         write(*,*) " about to call paintridge2cube "
      tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley )
      mxdisC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( isoht ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     isohtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
      tmpx6 = paintridge2cube ( anglx ,  ncube,nhalo,nsb,nsw,lzerovalley )
      anglxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
      tmpx6 = paintridge2cube ( aniso ,  ncube,nhalo,nsb,nsw,lzerovalley )
@@ -1394,6 +1488,7 @@ write(911) profiC
 !++11/15../21
 write(911) uniqidC
 write(911) itrgxC
+write(911) isohtC
 
 close(911)
 
@@ -2175,9 +2270,13 @@ subroutine paintridgeoncube ( ncube,nhalo,nsb,nsw , terr  )
           allocate( LAT1(npeaks))
               LAT1  = -9999.d+0
 
-!++11/1/21
+!++11/1-/21
   allocate( rdg_profiles( nsw+1, npeaks ) )
        rdg_profiles(:,:)=0.d+0
+  allocate( rt_diag( 2*nsw+1, 2*nsw+1, npeaks ) )
+       rt_diag(:,:,:)=0.d+0
+  allocate( rtx_diag( nsw+1, nsw+1, npeaks ) )
+       rtx_diag(:,:,:)=0.d+0
   allocate( crst_profiles( nsw+1, npeaks ) )
        crst_profiles(:,:)=0.d+0
   allocate( crst_silhous( nsw+1, npeaks ) )
@@ -2188,6 +2287,14 @@ subroutine paintridgeoncube ( ncube,nhalo,nsb,nsw , terr  )
 !++11/15/21
   allocate( UNIQID( npeaks ) )
        UNIQID(:)=-9999.d+0
+
+
+  allocate( isoht(npeaks) )
+   isoht=0.
+  allocate( isowd(npeaks) )
+   isowd=0.
+  allocate( isobs(npeaks) )
+   isobs=0.
 
 end subroutine alloc_ridge_qs
 
