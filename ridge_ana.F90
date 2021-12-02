@@ -1026,8 +1026,8 @@ end subroutine ANISO_ANA
     hwd1 =  2.* sum( pridge( 1:ipkh(1) ) )  / ( pridge(ipkh(1))+0.1)
     hwd2 =  2.* sum( pridge( ipkh(1):  ) )  / ( pridge(ipkh(1))+0.1)
     ! stop goofy results if a plateau exists on one side
-    hwd1 = min( hwd1 , 1.*nsw )
-    hwd2 = min( hwd2 , 1.*nsw )
+    hwd1 = min( hwd1 , 4.*nsw )
+    hwd2 = min( hwd2 , 4.*nsw )
 
     hwdth0 = (hwd1 + hwd2)
 
@@ -1235,7 +1235,7 @@ end subroutine testpaintridge
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: cwghtC , itrgtC, fallqC, riseqC, rwpksC, itrgxC
       real(KIND=dbl_kind), dimension(ncube*ncube)   :: dA    
 !++11/15/21 Added uniqidC
-      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: uniqidC,isohtC
+      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: uniqidC,isohtC,bumpsC
 
       CHARACTER(len=1024) :: ofile$
       character(len=8)  :: date$
@@ -1317,8 +1317,10 @@ end subroutine testpaintridge
         write(*,*) " about to call paintridge2cube "
      tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley )
      mxdisC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+!++ new 11/24/21
      tmpx6 = paintridge2cube ( isoht ,  ncube,nhalo,nsb,nsw,lzerovalley )
      isohtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+!--
      tmpx6 = paintridge2cube ( anglx ,  ncube,nhalo,nsb,nsw,lzerovalley )
      anglxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
      tmpx6 = paintridge2cube ( aniso ,  ncube,nhalo,nsb,nsw,lzerovalley )
@@ -1352,6 +1354,10 @@ end subroutine testpaintridge
 !++11/15/21
      tmpx6 = paintridge2cube ( uniqid ,  ncube,nhalo,nsb,nsw,lzerovalley )
      uniqidC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+
+!++11/30/21
+     tmpx6 = paintridge2cube ( isoht ,  ncube,nhalo,nsb,nsw,lzerovalley, bump_fill=.true. )
+     bumpsC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
 
     i_last = -9999
@@ -1489,6 +1495,7 @@ write(911) profiC
 write(911) uniqidC
 write(911) itrgxC
 write(911) isohtC
+write(911) bumpsC
 
 close(911)
 
@@ -1736,7 +1743,7 @@ end function mapridge2cube
 !======================================
 !++11/3/21 Added profile_fill
 function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, crest_weight, & 
-                           block_fill, profile_fill ) result( axc )
+                           block_fill, profile_fill, bump_fill ) result( axc )
    
        integer, intent(in) :: ncube,nhalo,nsb,nsw
        real, intent(in), dimension( size(xs) ) :: axr
@@ -1745,6 +1752,7 @@ function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, 
        logical, optional, intent(in) :: crest_weight
        logical, optional, intent(in) :: block_fill
        logical, optional, intent(in) :: profile_fill
+       logical, optional, intent(in) :: bump_fill
 
        real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: axc
        real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: qc
@@ -1752,8 +1760,8 @@ function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, 
        real, dimension(-nsw:nsw,-nsw:nsw) :: subr,subq,subdis
        real, dimension(-nsw:nsw)          :: xq,yq
        real :: rotangl,dsq,ssq
-       integer :: i,j,x0,x1,y0,y1,ip,ns0,ns1,ii,jj,norx,nory,nql,ncl,nhw,ipk,npeaks,jw
-       logical :: lcrestln,lcrestwt,lblockfl,lprofifl
+       integer :: i,j,x0,x1,y0,y1,ip,ns0,ns1,ii,jj,norx,nory,nql,ncl,nhw,ipk,npeaks,jw,iw
+       logical :: lcrestln,lcrestwt,lblockfl,lprofifl,lbumpfl
 !---------------------------------------------------
 
 
@@ -1779,6 +1787,13 @@ write(*,*) " in paintridge "
     else
        lprofifl = .false.
     endif
+!++ 11/30/21
+    if(present(bump_fill)) then
+      lbumpfl = bump_fill
+    else
+       lbumpfl = .false.
+    endif
+
 
     DO i=-nsw,nsw
        xq(i)=i
@@ -1872,6 +1887,22 @@ write(*,*) " in paintridge "
                subr = rotby3( suba , 2*nsw+1, rotangl )
                subdis = subr  * axr(ipk)
              end if
+!++11/30/21
+             if(Lbumpfl) then
+               suba(:,:) = 0.
+               ncl  = MIN( INT(isowd(ipk)/2) , nsw/2 )
+               nhw  = MIN( INT(isowd(ipk)/2) , nsw/2 )
+               !suba( -nhw:nhw , -ncl:ncl ) = 1.        
+               do jw=-nhw,nhw
+               do iw=-nhw,nhw
+                  suba( iw , jw ) = max( 0., 1.0 - sqrt( 1.*iw**2 + 1.*jw**2)/nhw )
+               end do
+               end do
+               !rotangl = - anglx(ipk) 
+               !subr = suba !  rotby3( suba , 2*nsw+1, rotangl )
+               subdis = suba  * axr(ipk)
+             end if
+!--
              if(Lcrestwt) then
                suba(:,:) = 0.
                ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
@@ -1888,7 +1919,7 @@ write(*,*) " in paintridge "
                subr = rotby3( suba , 2*nsw+1, rotangl )
                subdis = subr * axr(ipk)
              end if
-             if( (.not.(Lcrestln)).and.(.not.(Lcrestwt)).and.(.not.(Lblockfl)).and.(.not.(Lprofifl)) ) then
+             if( (.not.(Lcrestln)).and.(.not.(Lcrestwt)).and.(.not.(Lblockfl)).and.(.not.(Lprofifl)).and.(.not.(Lbumpfl)) ) then
                suba(:,:) = 0.
                ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
                suba( 0 , -ncl:ncl ) = 1.        
