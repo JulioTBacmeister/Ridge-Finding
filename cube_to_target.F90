@@ -1,3 +1,5 @@
+!#define FULLOUTPUT
+#undef FULLOUTPUT
 !  DATE CODED:   2011 to 2015
 !  DESCRIPTION:  Remap topo data from cubed-sphere grid to target grid using rigorous remapping
 !                (Lauritzen, Nair and Ullrich, 2010, J. Comput. Phys.)
@@ -986,6 +988,8 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   integer             :: mxdisid, ang22id, anixyid, anisoid, mxvrxid, mxvryid, hwdthid, wghtsid, anglxid, gbxarid
   integer             :: sghufid, terrufid, clngtid, cwghtid, countid,riseqid,fallqid
 
+  integer             :: ThisId
+
 !  integer, dimension(2) :: nc_lat_vid,nc_lon_vid
   character (len=8)   :: datestring
   real(r8), parameter :: fillvalue = 1.d36
@@ -1202,27 +1206,13 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      rdgqdim(2) = latid
      rdgqdim(3) = nrdgid
 
-     status = nf_def_var (foutid,'TERR_UF', NF_DOUBLE, 2, rdgqdim(1:2) , terrufid)
-     if (status .ne. NF_NOERR) call handle_err(status)
-     status = nf_def_var (foutid,'SGH_UF', NF_DOUBLE, 2, rdgqdim(1:2) , sghufid)
-     if (status .ne. NF_NOERR) call handle_err(status)
+
      status = nf_def_var (foutid,'GBXAR', NF_DOUBLE, 2, rdgqdim(1:2) , gbxarid)
      if (status .ne. NF_NOERR) call handle_err(status)
-
 
      status = nf_def_var (foutid,'MXDIS', NF_DOUBLE, 3, rdgqdim , mxdisid)
      if (status .ne. NF_NOERR) call handle_err(status)
 
-     status = nf_def_var (foutid,'RISEQ', NF_DOUBLE, 3, rdgqdim , riseqid)
-     if (status .ne. NF_NOERR) call handle_err(status)
-     status = nf_def_var (foutid,'FALLQ', NF_DOUBLE, 3, rdgqdim , fallqid)
-     if (status .ne. NF_NOERR) call handle_err(status)
-
-
-     status = nf_def_var (foutid,'MXVRX', NF_DOUBLE, 3, rdgqdim , mxvrxid)
-     if (status .ne. NF_NOERR) call handle_err(status)
-     status = nf_def_var (foutid,'MXVRY', NF_DOUBLE, 3, rdgqdim , mxvryid)
-     if (status .ne. NF_NOERR) call handle_err(status)
 
      status = nf_def_var (foutid,'ANGLL', NF_DOUBLE, 3, rdgqdim , ang22id)
      if (status .ne. NF_NOERR) call handle_err(status)
@@ -1236,14 +1226,31 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
 
      status = nf_def_var (foutid,'HWDTH', NF_DOUBLE, 3, rdgqdim , hwdthid)
      if (status .ne. NF_NOERR) call handle_err(status)
-     status = nf_def_var (foutid,'WGHTS', NF_DOUBLE, 3, rdgqdim , wghtsid)
-     if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'CLNGT', NF_DOUBLE, 3, rdgqdim , clngtid)
+     if (status .ne. NF_NOERR) call handle_err(status)
+
+
+#ifdef FULLOUTPUT
+     status = nf_def_var (foutid,'TERR_UF', NF_DOUBLE, 2, rdgqdim(1:2) , terrufid)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     status = nf_def_var (foutid,'SGH_UF', NF_DOUBLE, 2, rdgqdim(1:2) , sghufid)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     status = nf_def_var (foutid,'RISEQ', NF_DOUBLE, 3, rdgqdim , riseqid)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     status = nf_def_var (foutid,'FALLQ', NF_DOUBLE, 3, rdgqdim , fallqid)
+     if (status .ne. NF_NOERR) call handle_err(status)     
+     status = nf_def_var (foutid,'MXVRX', NF_DOUBLE, 3, rdgqdim , mxvrxid)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     status = nf_def_var (foutid,'MXVRY', NF_DOUBLE, 3, rdgqdim , mxvryid)
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'CWGHT', NF_DOUBLE, 3, rdgqdim , cwghtid)
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'COUNT', NF_DOUBLE, 3, rdgqdim , countid)
      if (status .ne. NF_NOERR) call handle_err(status)
+     status = nf_def_var (foutid,'WGHTS', NF_DOUBLE, 3, rdgqdim , wghtsid)
+     if (status .ne. NF_NOERR) call handle_err(status)
+#endif
+
   endif
 
 
@@ -1283,27 +1290,90 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   status = nf_put_att_double (foutid, landfracid, 'missing_value', nf_double, 1, fillvalue)
   status = nf_put_att_double (foutid, landfracid, '_FillValue'   , nf_double, 1, fillvalue)
   status = nf_put_att_text   (foutid, landfracid, 'long_name', 21, 'gridbox land fraction')
-!  status = nf_put_att_text   (foutid, landfracid, 'filter', 40, 'area averaged from 30-sec USGS raw data')
   
   
   status = nf_put_att_text (foutid,latvid,'long_name', 8, 'latitude')
   if (status .ne. NF_NOERR) call handle_err(status)
   status = nf_put_att_text (foutid,latvid,'units', 13, 'degrees_north')
   if (status .ne. NF_NOERR) call handle_err(status)
-  !        status = nf_put_att_text (foutid,latvid,'units', 21, 'cell center locations')
-  !        if (status .ne. NF_NOERR) call handle_err(status)
   
   status = nf_put_att_text (foutid,lonvid,'long_name', 9, 'longitude')
   if (status .ne. NF_NOERR) call handle_err(status)
   status = nf_put_att_text (foutid,lonvid,'units', 12, 'degrees_east')
   if (status .ne. NF_NOERR) call handle_err(status)
-  !        status = nf_put_att_text (foutid,lonvid,'units' , 21, 'cell center locations')
-  !        if (status .ne. NF_NOERR) call handle_err(status)
-  
-!  status = nf_put_att_text (foutid,NF_GLOBAL,'source', 27, 'USGS 30-sec dataset GTOPO30')
-!  if (status .ne. NF_NOERR) call handle_err(status)
-!  status = nf_put_att_text (foutid,NF_GLOBAL,'title',  24, '30-second USGS topo data')
-!  if (status .ne. NF_NOERR) call handle_err(status)
+
+if (Lfind_ridges) then 
+  ThisId = mxdisid
+  status = nf_put_att_double (foutid, ThisId, 'missing_value', nf_double, 1, fillvalue)
+  status = nf_put_att_double (foutid, ThisId, '_FillValue'   , nf_double, 1, fillvalue)
+  status = nf_put_att_text   (foutid, ThisId, 'long_name' , 48, &
+       'Obtsacle height diagnosed by ridge-finding alg. ')
+  status = nf_put_att_text   (foutid, ThisId, 'units'     , 1, 'm')
+  status = nf_put_att_text   (foutid, ThisId, 'filter'    , 4, 'none')
+
+  ThisId = ang22id
+  status = nf_put_att_double (foutid, ThisId, 'missing_value', nf_double, 1, fillvalue)
+  status = nf_put_att_double (foutid, ThisId, '_FillValue'   , nf_double, 1, fillvalue)
+  status = nf_put_att_text   (foutid, ThisId, 'long_name' , 48, &
+       'Ridge orientation clockwise from true north     ')
+       !12345678901234567890123456789012345678901234567890
+       !         10        20        30        40        
+  status = nf_put_att_text   (foutid, ThisId, 'units'     , 7, 'degrees')
+  status = nf_put_att_text   (foutid, ThisId, 'filter'    , 4, 'none')
+
+  ThisId = anglxid
+  status = nf_put_att_double (foutid, ThisId, 'missing_value', nf_double, 1, fillvalue)
+  status = nf_put_att_double (foutid, ThisId, '_FillValue'   , nf_double, 1, fillvalue)
+  status = nf_put_att_text   (foutid, ThisId, 'long_name' , 61, &
+       'Ridge orientation clockwise from b-axis in cubed sphere panel')
+       !1234567890123456789012345678901234567890123456789012345678901
+       !         10        20        30        40        50        60
+  status = nf_put_att_text   (foutid, ThisId, 'units'     , 7, 'degrees')
+  status = nf_put_att_text   (foutid, ThisId, 'filter'    , 4, 'none')
+
+  ThisId = hwdthid
+  status = nf_put_att_double (foutid, ThisId, 'missing_value', nf_double, 1, fillvalue)
+  status = nf_put_att_double (foutid, ThisId, '_FillValue'   , nf_double, 1, fillvalue)
+  status = nf_put_att_text   (foutid, ThisId, 'long_name' , 21, &
+       'Estimated Ridge width')
+       !12345678901234567890123456789012345678901234567890
+       !         10        20        30        40        
+  status = nf_put_att_text   (foutid, ThisId, 'units'     , 2, 'km')
+  status = nf_put_att_text   (foutid, ThisId, 'filter'    , 4, 'none')
+
+  ThisId = clngtid
+  status = nf_put_att_double (foutid, ThisId, 'missing_value', nf_double, 1, fillvalue)
+  status = nf_put_att_double (foutid, ThisId, '_FillValue'   , nf_double, 1, fillvalue)
+  status = nf_put_att_text   (foutid, ThisId, 'long_name' , 34, &
+       'Estimated Ridge length along crest')
+       !12345678901234567890123456789012345678901234567890
+       !         10        20        30        40        
+  status = nf_put_att_text   (foutid, ThisId, 'units'     , 2, 'km')
+  status = nf_put_att_text   (foutid, ThisId, 'filter'    , 4, 'none')
+
+  ThisId = anixyid
+  status = nf_put_att_double (foutid, ThisId, 'missing_value', nf_double, 1, fillvalue)
+  status = nf_put_att_double (foutid, ThisId, '_FillValue'   , nf_double, 1, fillvalue)
+  status = nf_put_att_text   (foutid, ThisId, 'long_name' , 42, &
+       'Variance ratio: cross/(cross+length) -wise')
+       !12345678901234567890123456789012345678901234567890
+       !         10        20        30        40        
+  status = nf_put_att_text   (foutid, ThisId, 'units'     , 1, '1')
+  status = nf_put_att_text   (foutid, ThisId, 'filter'    , 4, 'none')
+
+  ThisId = anisoid
+  status = nf_put_att_double (foutid, ThisId, 'missing_value', nf_double, 1, fillvalue)
+  status = nf_put_att_double (foutid, ThisId, '_FillValue'   , nf_double, 1, fillvalue)
+  status = nf_put_att_text   (foutid, ThisId, 'long_name' , 36, &
+       'Variance fraction explained by ridge')
+       !12345678901234567890123456789012345678901234567890
+       !         10        20        30        40        
+  status = nf_put_att_text   (foutid, ThisId, 'units'     , 1, '1')
+  status = nf_put_att_text   (foutid, ThisId, 'filter'    , 4, 'none')
+
+end if
+
+
   call DATE_AND_TIME(DATE=datestring)
   status = nf_put_att_text (foutid,NF_GLOBAL,'history',25, 'Written on date: ' // datestring )
   if (status .ne. NF_NOERR) call handle_err(status)
@@ -1363,26 +1433,6 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing MXDIS data"
 
-     print*,"writing RISEQ  data",MINVAL(riseq_target),MAXVAL(riseq_target)
-     status = nf_put_var_double (foutid, riseqid, riseq_target)
-     if (status .ne. NF_NOERR) call handle_err(status)
-     print*,"done writing RISEQ data"
-
-     print*,"writing FALLQ  data",MINVAL(fallq_target),MAXVAL(fallq_target)
-     status = nf_put_var_double (foutid, fallqid, fallq_target)
-     if (status .ne. NF_NOERR) call handle_err(status)
-     print*,"done writing FALLQ data"
-
-     print*,"writing MXVRX  data",MINVAL(mxvrx_target),MAXVAL(mxvrx_target)
-     status = nf_put_var_double (foutid, mxvrxid, mxvrx_target)
-     if (status .ne. NF_NOERR) call handle_err(status)
-     print*,"done writing MXVRX data"
-
-     print*,"writing MXVRY  data",MINVAL(mxvry_target),MAXVAL(mxvry_target)
-     status = nf_put_var_double (foutid, mxvryid, mxvry_target)
-     if (status .ne. NF_NOERR) call handle_err(status)
-     print*,"done writing MXVRY data"
-
      print*,"writing ANGLL  data",MINVAL(ang22_target),MAXVAL(ang22_target)
      status = nf_put_var_double (foutid, ang22id, ang22_target)
      if (status .ne. NF_NOERR) call handle_err(status)
@@ -1403,11 +1453,6 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing ANIXY data"
 
-     print*,"writing WGHTS  data",MINVAL(wghts_target),MAXVAL(wghts_target)
-     status = nf_put_var_double (foutid, wghtsid, wghts_target)
-     if (status .ne. NF_NOERR) call handle_err(status)
-     print*,"done writing WGHTS data"
-
      print*,"writing HWDTH  data",MINVAL(hwdth_target),MAXVAL(hwdth_target)
      status = nf_put_var_double (foutid, hwdthid, hwdth_target)
      if (status .ne. NF_NOERR) call handle_err(status)
@@ -1417,6 +1462,42 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      status = nf_put_var_double (foutid, clngtid, clngt_target)
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing CLNGT data"
+
+     print*,"writing GBXAR  data",MINVAL(area_target),MAXVAL(area_target)
+     status = nf_put_var_double (foutid, gbxarid, area_target)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     print*,"done writing GBXAR data"
+
+#ifdef FULLOUTPUT
+     print*,"writing TERR_UF  data",MINVAL(terr_uf_target),MAXVAL(terr_uf_target)
+     status = nf_put_var_double (foutid, terrufid, terr_uf_target)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     print*,"done writing TERR_UF data"
+
+     print*,"writing SGH_UF  data",MINVAL(sgh_uf_target),MAXVAL(sgh_uf_target)
+     status = nf_put_var_double (foutid, sghufid, sgh_uf_target)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     print*,"done writing SGH_UF data"
+
+     print*,"writing RISEQ  data",MINVAL(riseq_target),MAXVAL(riseq_target)
+     status = nf_put_var_double (foutid, riseqid, riseq_target)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     print*,"done writing RISEQ data"
+
+     print*,"writing FALLQ  data",MINVAL(fallq_target),MAXVAL(fallq_target)
+     status = nf_put_var_double (foutid, fallqid, fallq_target)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     print*,"done writing FALLQ data"
+
+     print*,"writing MXVRX  data",MINVAL(mxvrx_target),MAXVAL(mxvrx_target)
+     status = nf_put_var_double (foutid, mxvrxid, mxvrx_target)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     print*,"done writing MXVRX data"
+
+     print*,"writing MXVRY  data",MINVAL(mxvry_target),MAXVAL(mxvry_target)
+     status = nf_put_var_double (foutid, mxvryid, mxvry_target)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     print*,"done writing MXVRY data"
 
      print*,"writing CWGHT  data",MINVAL(cwght_target),MAXVAL(cwght_target)
      status = nf_put_var_double (foutid, cwghtid, cwght_target)
@@ -1428,21 +1509,12 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing COUNT data"
 
-
-     print*,"writing TERR_UF  data",MINVAL(terr_uf_target),MAXVAL(terr_uf_target)
-     status = nf_put_var_double (foutid, terrufid, terr_uf_target)
+     print*,"writing WGHTS  data",MINVAL(wghts_target),MAXVAL(wghts_target)
+     status = nf_put_var_double (foutid, wghtsid, wghts_target)
      if (status .ne. NF_NOERR) call handle_err(status)
-     print*,"done writing TERR_UF data"
+     print*,"done writing WGHTS data"
 
-     print*,"writing SGH_UF  data",MINVAL(sgh_uf_target),MAXVAL(sgh_uf_target)
-     status = nf_put_var_double (foutid, sghufid, sgh_uf_target)
-     if (status .ne. NF_NOERR) call handle_err(status)
-     print*,"done writing SGH_UF data"
-
-     print*,"writing GBXAR  data",MINVAL(area_target),MAXVAL(area_target)
-     status = nf_put_var_double (foutid, gbxarid, area_target)
-     if (status .ne. NF_NOERR) call handle_err(status)
-     print*,"done writing GBXAR data"
+#endif
 
   endif
 
