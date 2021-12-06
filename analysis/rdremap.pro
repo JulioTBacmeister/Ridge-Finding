@@ -79,8 +79,13 @@ readu,1,profi
 readu,1,uniqi
 readu,1,itrgx
 
+  if not eof(1) then begin
      readu,1,isoht
      readu,1,bumps
+     readu,1,isowd
+ endif
+
+ print,"End of remap file ",eof(1) 
 
 endif
 

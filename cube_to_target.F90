@@ -1,5 +1,5 @@
-!#define FULLOUTPUT
-#undef FULLOUTPUT
+#define FULLOUTPUT
+!#undef FULLOUTPUT
 !  DATE CODED:   2011 to 2015
 !  DESCRIPTION:  Remap topo data from cubed-sphere grid to target grid using rigorous remapping
 !                (Lauritzen, Nair and Ullrich, 2010, J. Comput. Phys.)
@@ -239,10 +239,17 @@ program convterr
          !--- Make output filename
          !----------------------------------------------------------------------
          call DATE_AND_TIME( DATE=date$,TIME=time$)
+#ifndef FULLOUTPUT
          write( ofile$ , &
              "('_nc',i0.4, '_Nsw',i0.3,'_Nrs',i0.3  &
              '_Co',i0.3,'_Fi',i0.3)" ) & 
          ncube, nsw, nsb,   ncube_sph_smooth_coarse   , ncube_sph_smooth_fine
+#else
+        write( ofile$ , &
+             "('_nc',i0.4, '_Nsw',i0.3,'_Nrs',i0.3  &
+             '_Co',i0.3,'_Fi',i0.3,'_XTout')" ) & 
+         ncube, nsw, nsb,   ncube_sph_smooth_coarse   , ncube_sph_smooth_fine
+#endif
          if (.not.(lzero_negative_peaks) ) then
             output_fname = './output/'//trim(output_grid)//trim(ofile$)//'._test_v3.nc'
          else
@@ -256,11 +263,6 @@ program convterr
         call find_ridges ( terr_dev, terr, ncube, nhalo, nsb, nsw, &  
                            ncube_sph_smooth_coarse   , ncube_sph_smooth_fine )
 
-#if 0
-         call testpaintridge( ncube, &
-         nhalo,nsb,nsw, &
-         ncube_sph_smooth_coarse, ncube_sph_smooth_fine, lzero_negative_peaks)
-#endif
       else
          call DATE_AND_TIME( DATE=date$,TIME=time$)
          write( ofile$ , &
@@ -955,7 +957,7 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   use ridge_ana, only: nsubr, mxdis_target, mxvrx_target, mxvry_target, ang22_target, &
                        anglx_target, aniso_target, anixy_target, hwdth_target, wghts_target, & 
                        clngt_target, cwght_target, count_target,riseq_target,grid_length_scale, &
-                       fallq_target
+                       fallq_target,isowd_target,isoht_target
 
   use shared_vars, only : terr_uf_target, sgh_uf_target, area_target
   use shr_kind_mod, only: r8 => shr_kind_r8
@@ -986,7 +988,7 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   integer             :: status    ! return value for error control of netcdf routin
 
   integer             :: mxdisid, ang22id, anixyid, anisoid, mxvrxid, mxvryid, hwdthid, wghtsid, anglxid, gbxarid
-  integer             :: sghufid, terrufid, clngtid, cwghtid, countid,riseqid,fallqid
+  integer             :: sghufid, terrufid, clngtid, cwghtid, countid,riseqid,fallqid, isowdid, isohtid
 
   integer             :: ThisId
 
@@ -1248,6 +1250,11 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      status = nf_def_var (foutid,'COUNT', NF_DOUBLE, 3, rdgqdim , countid)
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'WGHTS', NF_DOUBLE, 3, rdgqdim , wghtsid)
+     if (status .ne. NF_NOERR) call handle_err(status)
+!++Dec 2021
+     status = nf_def_var (foutid,'ISOWD', NF_DOUBLE, 3, rdgqdim , isowdid)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     status = nf_def_var (foutid,'ISOHT', NF_DOUBLE, 3, rdgqdim , isohtid)
      if (status .ne. NF_NOERR) call handle_err(status)
 #endif
 
@@ -1513,6 +1520,16 @@ end if
      status = nf_put_var_double (foutid, wghtsid, wghts_target)
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing WGHTS data"
+
+     print*,"writing ISOHT  data",MINVAL(isoht_target),MAXVAL(isoht_target)
+     status = nf_put_var_double (foutid, isohtid, isoht_target)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     print*,"done writing ISOHT data"
+
+     print*,"writing ISOWD  data",MINVAL(isowd_target),MAXVAL(isowd_target)
+     status = nf_put_var_double (foutid, isowdid, isowd_target)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     print*,"done writing ISOWD data"
 
 #endif
 

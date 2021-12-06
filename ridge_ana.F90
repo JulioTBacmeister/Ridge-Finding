@@ -16,12 +16,11 @@ public find_ridges
 public remapridge2target
 public remapridge2tiles
 public paintridgeoncube
-public testpaintridge
 
 public anglx_target,aniso_target,mxdis_target,hwdth_target
 public mxvrx_target,mxvry_target,bsvar_target,wghts_target,riseq_target
 public ang22_target,anixy_target,clngt_target,cwght_target,count_target
-public nsubr,grid_length_scale,fallq_target
+public nsubr,grid_length_scale,fallq_target,isoht_target,isowd_target
 
 public peak_type
 
@@ -49,6 +48,7 @@ public peak_type
   real(r8), allocatable, dimension(:,:) :: mxvrx_target,mxvry_target,bsvar_target,wghts_target 
   real(r8), allocatable, dimension(:,:) :: ang22_target,anixy_target,clngt_target,cwght_target
   real(r8), allocatable, dimension(:,:) :: count_target,riseq_target,fallq_target
+  real(r8), allocatable, dimension(:,:) :: isoht_target,isowd_target
   !!,rwpks_target
 
     INTEGER (KIND=int_kind),allocatable :: UQRID(:) 
@@ -1080,123 +1080,6 @@ end subroutine ANISO_ANA
    
 
    end subroutine ridgescales
-!====================================
-   subroutine testpaintridge( ncube, &
-         nhalo,nsb,nsw,nsmcoarse,nsmfine,lzerovalley)
-      use shr_kind_mod, only: r8 => shr_kind_r8
-      use remap
-      use reconstruct !, only : EquiangularAllAreas
-      implicit none
-      !type( peak_type ) :: peaks(npeaks)
-      integer , intent(in) :: ncube,nhalo,nsb,nsw,nsmcoarse,nsmfine
-      logical, intent(in)  :: lzerovalley
-  
-      REAL  ,                                                          &
-         DIMENSION(1-nhalo:ncube+nhalo )                          :: xv,yv,alph,beta
-      
-      integer :: alloc_error
-
-      integer :: i,ix,iy,ip,ii,counti,norx,nory,i_last,isubr,iip,j,ipk,npeaks
-      real(r8):: wt
-      real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: tmpx6
-      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: mxdisC , anglxC, anisoC, hwdthC, profiC
-      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: mxvrxC , mxvryC, bsvarC, clngtC, blockC
-      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: cwghtC , itrgtC, fallqC, riseqC, rwpksC
-      real(KIND=dbl_kind), dimension(ncube*ncube)   :: dA
-
-      CHARACTER(len=1024) :: ofile$
-!----------------------------------------------------------------------------------------------------
-
-    !!allocate ( dA(ncube,ncube),stat=alloc_error )
-    CALL EquiangularAllAreas(ncube, dA)
-
-    DO i=1-nhalo,ncube+nhalo
-       xv(i)=1.*i
-       yv(i)=1.*i
-    END DO
-     npeaks=size(mxdis)
-
-    if(lzerovalley)then
-      write(*,*) " will ZERO out negative peaks and 'Cuestas' "
-      do ipk=1,npeaks
-         if( (pkhts(ipk)<0.1*mxdis(ipk)).or.(npks(ipk)<1.0) ) then
-           mxdis(ipk)  = 0.
-           riseq(ipk)  = 0.
-           fallq(ipk)  = 0.
-           clngth(ipk) = 0.
-         endif
-      end do
-    else
-      write(*,*) " Leave negative peaks ALONE "
-    endif
-
-
-        write(*,*) " about to call paintridge2cube "
-     tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     mxdisC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-     tmpx6 = paintridge2cube ( anglx ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     anglxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-     tmpx6 = paintridge2cube ( aniso ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     anisoC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-     tmpx6 = paintridge2cube ( mxvrx ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     mxvrxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-     tmpx6 = paintridge2cube ( mxvry ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     mxvryC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-     tmpx6 = paintridge2cube ( bsvar ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     bsvarC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-     tmpx6 = paintridge2cube ( hwdth ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     hwdthC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-     tmpx6 = paintridge2cube ( clngth ,  ncube,nhalo,nsb,nsw,lzerovalley, crest_length=.true. )
-     clngtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-     tmpx6 = paintridge2cube ( clngth ,  ncube,nhalo,nsb,nsw,lzerovalley, crest_weight=.true. )
-     cwghtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-     tmpx6 = paintridge2cube ( fallq ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     fallqC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-     tmpx6 = paintridge2cube ( riseq ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     riseqC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-
-     tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, block_fill=.true.   )
-     blockC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-     !tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, profile_fill=.true.   )
-     !profiC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-
-       write( ofile$ , &
-       "('./output/remap_nc',i0.4, '_Nsw',i0.3,'_Nrs',i0.3  &
-       '_Co',i0.3,'_Fi',i0.3)" ) & 
-        ncube, nsw, nsb, nsmcoarse, nsmfine
-       ofile$= trim(ofile$)//'_dev_110816.dat'
-
-       OPEN (unit = 911, file= trim(ofile$) ,form="UNFORMATTED" )
-
-write(911) ncube,npeaks
-write(911) mxdisC
-
-   write(911) blockC
-
-write(911) mxvrxC
-write(911) mxvryC
-write(911) anglxC
-write(911) hwdthC
-write(911) cwghtC
-write(911) clngtC
-write(911) itrgtC
-write(911) fallqC
-write(911) riseqC
-
-write(911) xs,ys,xspk,yspk,peaks%i,peaks%j
-
-
-close(911)
-
-write(*,*) npeaks
-write(*,*) size(xs),size(xspk),size(peaks%i)
-
-STOP
-
-end subroutine testpaintridge
 
 !====================================
    subroutine remapridge2target(area_target,target_center_lon,target_center_lat,  &
@@ -1235,7 +1118,7 @@ end subroutine testpaintridge
       real(KIND=dbl_kind), dimension(ncube*ncube*6) :: cwghtC , itrgtC, fallqC, riseqC, rwpksC, itrgxC
       real(KIND=dbl_kind), dimension(ncube*ncube)   :: dA    
 !++11/15/21 Added uniqidC
-      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: uniqidC,isohtC,bumpsC
+      real(KIND=dbl_kind), dimension(ncube*ncube*6) :: uniqidC,isohtC,bumpsC,isowdC
 
       CHARACTER(len=1024) :: ofile$
       character(len=8)  :: date$
@@ -1294,6 +1177,14 @@ end subroutine testpaintridge
     if( alloc_error /= 0 ) then; print*,'Program could not allocate space for fallq_target'; stop; endif
     fallq_target = 0.
 
+!++ 12/../21
+    allocate (isowd_target(ntarget,nsubr),stat=alloc_error )
+    if( alloc_error /= 0 ) then; print*,'Program could not allocate space for fallq_target'; stop; endif
+    isowd_target = 0.
+    allocate (isoht_target(ntarget,nsubr),stat=alloc_error )
+    if( alloc_error /= 0 ) then; print*,'Program could not allocate space for fallq_target'; stop; endif
+    isoht_target = 0.
+
      npeaks=size(mxdis)
 
      itrgtC = 0.
@@ -1305,6 +1196,7 @@ end subroutine testpaintridge
       do ipk=1,npeaks
          if( (pkhts(ipk)<0.1*mxdis(ipk)).or.(npks(ipk)<1.0) ) then
            mxdis(ipk)  = 0.
+           isoht(ipk)  = 0.
            riseq(ipk)  = 0.
            fallq(ipk)  = 0.
            clngth(ipk) = 0.
@@ -1317,9 +1209,11 @@ end subroutine testpaintridge
         write(*,*) " about to call paintridge2cube "
      tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley )
      mxdisC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-!++ new 11/24/21
+!++ new after 11/21
      tmpx6 = paintridge2cube ( isoht ,  ncube,nhalo,nsb,nsw,lzerovalley )
      isohtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( isowd ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     isowdC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 !--
      tmpx6 = paintridge2cube ( anglx ,  ncube,nhalo,nsb,nsw,lzerovalley )
      anglxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
@@ -1414,6 +1308,9 @@ end subroutine testpaintridge
       clngt_target( i , isubr ) = clngt_target( i , isubr ) + wt*cwghtC(ii)/dA(iip)
       cwght_target( i , isubr ) = cwght_target( i , isubr ) + wt*cwghtC(ii) 
       count_target( i , isubr ) = count_target( i , isubr ) + wt/dA(iip)
+!++ 12/../21
+      isoht_target( i , isubr ) = isoht_target( i , isubr ) + wt*isohtC(ii) *cwghtC(ii)
+      isowd_target( i , isubr ) = isowd_target( i , isubr ) + wt*isowdC(ii) *cwghtC(ii)
       endif
 
       i_last = i
@@ -1422,6 +1319,7 @@ end subroutine testpaintridge
     ! change width (and length) to km
     hwdth_target = hwdth_target * grid_length_scale
     clngt_target = clngt_target * grid_length_scale
+    isowd_target = isowd_target * grid_length_scale
 
     ! Make fallq positive
     fallq_target = -1.*fallq_target
@@ -1442,6 +1340,8 @@ end subroutine testpaintridge
         mxvrx_target = mxvrx_target / cwght_target
         mxvry_target = mxvry_target / cwght_target
         bsvar_target = bsvar_target / cwght_target
+        isoht_target = isoht_target / cwght_target
+        isowd_target = isowd_target / cwght_target
      elsewhere      
         clngt_target = 0.
         mxdis_target = 0.
@@ -1453,6 +1353,8 @@ end subroutine testpaintridge
         mxvrx_target = 0.
         mxvry_target = 0.
         bsvar_target = 0.
+        isoht_target = 0. 
+        isowd_target = 0. 
      end where
 
 #if 1
@@ -1496,6 +1398,7 @@ write(911) uniqidC
 write(911) itrgxC
 write(911) isohtC
 write(911) bumpsC
+write(911) isowdC
 
 close(911)
 
