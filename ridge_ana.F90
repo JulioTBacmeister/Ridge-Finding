@@ -34,7 +34,7 @@ public peak_type
 !++11//21
   REAL, allocatable  :: rdg_profiles(:,:) , crst_profiles(:,:), crst_silhous(:,:)
   INTEGER, allocatable ::  MyPanel(:)
-  REAL, allocatable  :: rt_diag(:,:,:), rtx_diag(:,:,:)
+  REAL, allocatable  :: rt_diag(:,:,:), rtx_diag(:,:,:),rdg_profiles_x(:,:)
 !++11/15/21
   REAL, allocatable  :: UNIQID(:),ISOHT(:),ISOWD(:),ISOBS(:)
 
@@ -902,7 +902,8 @@ end subroutine find_ridges
                           anglx(ipk), xs(ipk) , ys(ipk), & 
                           xspk(ipk), yspk(ipk), clngth(ipk) , hwdth(ipk), & 
                           suba , rt_diag(:,:,ipk),rtx_diag(:,:,ipk), &
-                          isoht(ipk), isowd(ipk), isobs(ipk) )
+                          isoht(ipk), isowd(ipk), isobs(ipk), & 
+                          rdg_profiles_x(:,ipk)  )
 
  
 #endif
@@ -968,7 +969,7 @@ end subroutine ANISO_ANA
    subroutine ridgescales( nsw, ridge, crest, xr, xmn, anglx0 , &
                            xs0 , ys0, xspk0 , yspk0, clngt0, hwdth0 , & 
                            suba , rt_diag0,rtx_diag0, &
-                           isoht0, isowd0 , isobs0 )
+                           isoht0, isowd0 , isobs0, ridge_x )
 
     integer , intent(in   )  :: nsw
     real,     intent(in   )  :: ridge(nsw+1), crest(nsw+1), xr(nsw+1) 
@@ -977,6 +978,7 @@ end subroutine ANISO_ANA
     real,     intent(in   )  :: suba( 2*nsw+1 , 2*nsw+1 )
     real,     intent(inout)  :: rt_diag0( 2*nsw+1 , 2*nsw+1 )
     real,     intent(inout)  :: rtx_diag0( nsw+1 , nsw+1 )
+    real,     intent(inout)  :: ridge_x( 2*nsw+1 )
     real,     intent(inout)  :: isowd0 , isoht0, isobs0
 
     ! local vars
@@ -1041,6 +1043,8 @@ end subroutine ANISO_ANA
 
     rt_diag0(:,:) =rt(:,:)
     rtx_diag0(:,:)=rt(ns0:ns1-1,ns0:ns1-1)  !rt(:,:)
+
+    ridge_x = sum( rt( : , ns0:ns1-1) , 2 ) /(ns1-ns0)
 
     !---------------------------------------------------------
     ! Now assign some non-ridge variance to an isotropic obstacle
@@ -1768,10 +1772,10 @@ write(*,*) " in paintridge "
 !++11/3/21 -nsw/2:nsw/2 ==> 
             if(Lprofifl) then
                suba(:,:) = 0.
-               ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
-               !suba( -nhw:nhw , -ncl:ncl ) = 1.        
+               ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )   
                do jw=-ncl,ncl
-                  suba(-nsw/2: , jw  ) = rdg_profiles(:,ipk)
+                  !!suba(-nsw/2: , jw  ) = rdg_profiles(:,ipk)
+                  suba(: , jw  ) = rdg_profiles_x(:,ipk)
                end do
                rotangl = - anglx(ipk) 
                subr = rotby3( suba , 2*nsw+1, rotangl )
@@ -1841,7 +1845,6 @@ write(*,*) " in paintridge "
              dsq    = 1.0 - SQRT( (xs(ipk)-xspk(ipk))**2 + (ys(ipk)-yspk(ipk))**2 )/nsw
              subq   = sub1 * dsq
 
-#if 1
                 ! original reconciliation
                 !------------------------
                 do jj = -NSW/2,NSW/2
@@ -1857,7 +1860,58 @@ write(*,*) " in paintridge "
                 end do
                 end do
                 !------------------------------------
+             if (Lprofifl)  then 
+                ! special extended reconciliation for
+                ! profiles. Sort of "cheaty" but does
+                ! use diagnosed ridge profiles (12/8/21)
+                !-----------------------------------
+                where( abs(subdis) > 8000.)
+                     subdis=0.
+                end where
+#if 1
+                do jj = -NSW,-NSW/2-1
+                do ii = -NSW,NSW
+                    ip = peaks(ipk)%ip
+                    x0 = INT( xspk(ipk) ) + 1
+                    y0 = INT( yspk(ipk) ) + 1
+                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
+                       if ( abs(AXC( x0+ii, y0+jj, ip )) < abs(subdis(ii,jj)) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
+                    endif
+                end do
+                end do
+                do jj =  NSW/2+1,NSW
+                do ii = -NSW,NSW
+                    ip = peaks(ipk)%ip
+                    x0 = INT( xspk(ipk) ) + 1
+                    y0 = INT( yspk(ipk) ) + 1
+                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
+                       if ( abs(AXC( x0+ii, y0+jj, ip )) < abs(subdis(ii,jj)) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
+                    endif
+                end do
+                end do
+                do jj = -NSW/2,NSW/2
+                do ii = -NSW,-NSW/2-1
+                    ip = peaks(ipk)%ip
+                    x0 = INT( xspk(ipk) ) + 1
+                    y0 = INT( yspk(ipk) ) + 1
+                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
+                       if ( abs(AXC( x0+ii, y0+jj, ip )) < abs(subdis(ii,jj)) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
+                    endif
+                end do
+                end do
+                do jj = -NSW/2,NSW/2
+                do ii = NSW/2+1,NSW
+                    ip = peaks(ipk)%ip
+                    x0 = INT( xspk(ipk) ) + 1
+                    y0 = INT( yspk(ipk) ) + 1
+                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
+                       if ( abs(AXC( x0+ii, y0+jj, ip )) < abs(subdis(ii,jj)) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
+                    endif
+                end do
+                end do
 #endif
+                !------------------------------------
+             end if
 
 #if 0
                 ! NO reconciliation.
@@ -2217,6 +2271,9 @@ subroutine paintridgeoncube ( ncube,nhalo,nsb,nsw , terr  )
        crst_silhous(:,:)=0.d+0
    allocate( MyPanel( npeaks ) )
        MyPanel = -1
+
+  allocate( rdg_profiles_x( 2*nsw+1, npeaks ) )
+       rdg_profiles_x(:,:)=0.d+0
 
 !++11/15/21
   allocate( UNIQID( npeaks ) )

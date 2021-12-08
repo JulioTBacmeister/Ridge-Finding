@@ -1,4 +1,6 @@
- d='/project/amp/juliob/Topo-generate-devel/Topo/Ridge-Finding.git/output/'
+ ;d='/project/amp/juliob/Topo-generate-devel/Topo/Ridge-Finding.git/output/'
+
+d='../output/'
 
 fn = 'remap_nc3000_Nsw042_Nrs008_Co060_Fi008_vX_'
 soo=file_search( d+fn+'*.dat')
@@ -31,5 +33,13 @@ STOP
 rdremap,rem=rem1,top=top1,cube=c1
 rdremap,rem=rem2,top=top2,cube=c2
 
+hdp = fltarr( 120,120, 6)
+hdb = fltarr( 120,120, 6)
 
+for p=0,5 do begin
+
+hdp(*,*,p)=histo_2d(  smoothxy( c1.dev(*,*,p)+c2.dev(*,*,p),3,3)  , smoothxy(c1.profi(*,*,p)+c2.profi(*,*,p),3,3),xmin=-2000,xmax=4000,ymin=-2000,ymax=4000,ybin=50,xbin=50,xvec=xv,yvec=yv)                                                                                                                                      
+hdb(*,*,p)=histo_2d(  smoothxy( c1.dev(*,*,p)+c2.dev(*,*,p),3,3)  , smoothxy(c1.block(*,*,p)+c2.block(*,*,p),3,3),xmin=-2000,xmax=4000,ymin=-2000,ymax=4000,ybin=50,xbin=50,xvec=xv,yvec=yv)
+
+endfor
 end
