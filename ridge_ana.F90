@@ -1088,7 +1088,8 @@ end subroutine ANISO_ANA
 !====================================
    subroutine remapridge2target(area_target,target_center_lon,target_center_lat,  &
          weights_eul_index_all,weights_lgr_index_all,weights_all,ncube,jall, &
-         nreconstruction,ntarget,nhalo,nsb,nsw,nsmcoarse,nsmfine,lzerovalley)
+         nreconstruction,ntarget,nhalo,nsb,nsw,nsmcoarse,nsmfine,lzerovalley, & 
+         output_grid )
 !==========================================
 ! Some key inputs
 !      NSW:  = 'nwindow_halfwidth' which comes from topo namelist, but should always be 
@@ -1106,6 +1107,7 @@ end subroutine ANISO_ANA
       integer , intent(in) :: ncube,jall,nreconstruction,ntarget,nhalo,nsb,nsw,nsmcoarse,nsmfine
       real(r8), intent(in) :: area_target(ntarget),target_center_lon(ntarget),target_center_lat(ntarget)
       logical, intent(in)  :: lzerovalley
+      character(len=1024),intent(in)  :: output_grid
       real(r8):: f(ntarget)
   
       REAL  ,                                                          &
@@ -1390,7 +1392,7 @@ write(911) anglxC
 write(911) hwdthC
 write(911) cwghtC
 write(911) clngtC
-write(911) itrgtC
+!write(911) itrgtC
 write(911) fallqC
 write(911) riseqC
 write(911) xs,ys,xspk,yspk,peaks%i,peaks%j
@@ -1404,6 +1406,16 @@ write(911) isohtC
 write(911) bumpsC
 write(911) isowdC
 
+close(911)
+
+      write( ofile$ , &
+       "('./output/grid_remap_nc',i0.4 )" ) ncube
+       ofile$= trim(ofile$)//'_'//trim(output_grid)//'.dat'
+
+       OPEN (unit = 911, file= trim(ofile$) ,form="UNFORMATTED" )
+write(911) ncube,npeaks
+write(911) itrgtC
+write(911) xs,ys,xspk,yspk,peaks%i,peaks%j
 close(911)
 
 
