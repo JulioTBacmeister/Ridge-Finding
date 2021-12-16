@@ -239,17 +239,12 @@ program convterr
          !--- Make output filename
          !----------------------------------------------------------------------
          call DATE_AND_TIME( DATE=date$,TIME=time$)
-#if 1
+
          write( ofile$ , &
              "('_nc',i0.4, '_Nsw',i0.3,'_Nrs',i0.3  &
              '_Co',i0.3,'_Fi',i0.3)" ) & 
          ncube, nsw, nsb,   ncube_sph_smooth_coarse   , ncube_sph_smooth_fine
-#else
-        write( ofile$ , &
-             "('_nc',i0.4, '_Nsw',i0.3,'_Nrs',i0.3  &
-             '_Co',i0.3,'_Fi',i0.3,'_XTout')" ) & 
-         ncube, nsw, nsb,   ncube_sph_smooth_coarse   , ncube_sph_smooth_fine
-#endif
+
          if (.not.(lzero_negative_peaks) ) then
             output_fname = './output/'//trim(output_grid)//trim(ofile$)//'._test_v3.nc'
          else

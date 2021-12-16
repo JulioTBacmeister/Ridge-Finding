@@ -156,33 +156,6 @@ subroutine find_local_maxes ( terr_dev, ncube, nhalo, nsb, nsw ) !, npeaks, peak
     END DO
 
     terr_sm = terr_dev*0._r8
-
-#if 0
-    ! smooth terr_dev_halo here if desired
-    ! to "thin" peaks
-    !--------------------------------------
-    terr_sm_halo = terr_dev_halo*0._r8
-    nblock = (2*nsb2+1)*(2*nsb2+1)
-    DO np = 1, 6
-    DO j=1-nhalo+nsb2,ncube+nhalo-nsb2
-    DO i=1-nhalo+nsb2,ncube+nhalo-nsb2
-
-
-      terr_sm_halo(i,j,np) = SUM( terr_dev_halo( i-nsb2:i+nsb2 , j-nsb2:j+nsb2 , np) ) / nblock
-   
-    END DO
-    END DO
-             write(*,*) " FACE = ",np
-    END DO
- 
-   do np=1,6
-       terr_sm(1:ncube,1:ncube,np) = terr_sm_halo(1:ncube,1:ncube,np )
-    end do
-   do np=1,6
-       terr_dev_halo(:,:,np)  = terr_sm_halo(:,:,np )
-    end do
-#endif
-
  
     DO np = 1, 6
     DO j=1-nhalo+1,ncube+nhalo-1
@@ -210,37 +183,7 @@ subroutine find_local_maxes ( terr_dev, ncube, nhalo, nsb, nsw ) !, npeaks, peak
        terr_max(1:ncube,1:ncube,np) = terr_max_halo(1:ncube,1:ncube,np )
     end do
 
-#if 0
-     write(211) ncube
-     write(211) terr_dev
-     write(211) terr_max
-     write(211) terr_sm
-#endif
      
-#if 0
-    DO np = 1, 6
-    DO j=1-nhalo+nsb2,ncube+nhalo-nsb2
-    DO i=1-nhalo+nsb2,ncube+nhalo-nsb2
-
-      nhigher = count( (terr_max_halo( i-nsb2:i+nsb2 , j-nsb2:j+nsb2 , np) > terr_max_halo(i,j,np)  ) )
-                              ! if nhigher=0 then  terr_max_halo(i,j,np) is the highest peak in 
-                              ! section
-
-      if ( nhigher == 0)  terr_max_halo( i-nsb2:i+nsb2 , j-nsb2:j+nsb2 , np) = 0
-   
-
-    END DO
-    END DO
-             write(*,*) " FACE = ",np
-    END DO
- 
-   do np=1,6
-       terr_max(1:ncube,1:ncube,np) = terr_max_halo(1:ncube,1:ncube,np )
-    end do
-
-    write(211) terr_max
-
-#endif
 
     npeaks = count(  (terr_max > thsh) )
 
@@ -266,11 +209,6 @@ write(*,*) ' PANEL = ',NP
 write(*,*) " two sizes of peaks ", npeaks, ipk-1
 write(*,*) " SHAPE ", shape( peaks%i )
 
-#if 0
-write(811) npeaks
-write(811) peaks%i, peaks%j, peaks%ip
-close( unit=811)
-#endif
 
  end subroutine find_local_maxes
 
@@ -566,8 +504,9 @@ end subroutine find_ridges
 
   real :: THETRAD,PI,swt,ang,rotmn,rotvar,mnt,var,xmn,xvr,basmn,basvar,mn2,var2
   real :: dyr_crest
-  integer :: i,j,l,m,n2,mini,maxi,minj,maxj,ns0,ns1,iorn(1),jj, &
-            ipkh(1),ivld(1),ift0(1),ift1(1),i2,ii,ipksv(1)
+  integer :: i,j,l,m,n2,mini,maxi,minj,maxj,ns0,ns1,iorn(1),jj
+  integer :: ipkh(1),ivld(1),ift0(1),ift1(1),i2,ii,ipksv(1),nsb_x
+  integer :: ibad_left,ibad_rght
 
   real :: vvaa(NANG),qual(NANG),dex(NANG),beta(NANG),alph,xpkh(NANG),ang00
   real :: dex0(nang),dex1(nang),xft0(NANG),xft1(NANG),HWDX(NANG),xvld(NANG)
@@ -770,15 +709,28 @@ end subroutine find_ridges
            ivld    = MINLOC( RTX ) ! index of MIN valley depth in rotated topo avg cross-section
            xvld(L) = XRT( ivld(1) )-xmn
 
-
-           ! if ipkh is at or close to the edge of the profile
-           ! i.e., 1 or nsw, then is likely sloping terrain not
-           ! a real peak-y feature. Flag it by zeroing out npkx. 
-           ! Risks missing a true peak in the interior, but redundant
-           ! subsamples should help. Bigger risk is getting fooled
-           ! small (spurious) interior peak. 
-           if( ( ipkh(1) <= max( nsw/2-nsb,1) ).or. &
-               ( ipkh(1) >= min( nsw/2+nsb,nsw) ) ) then
+           !================ Dec 2021  =========================================
+           ! Ideally ipkh=nsw/2, i.e, center of ridge profile. If ipkh=1 or nsw
+           ! this feature could just be sloping terrain.  In practice it appears
+           ! redundancy saves our a-- in paintridge2cube.  Here we provide some 
+           ! more protcetion against id'ing sloping terrain as a ridge:
+           !
+           !      1 -- | ---       nsw/2      --- | -- nsw
+           !      //////                          //////
+           !           ibad_left                  ibad_rght
+           !
+           ! If ipkh is /// region then we flag it as "bad".  Maybe this code 
+           ! should be removed altogether ... 
+           !====================================================================
+           nsb_x = nsb
+           if (nsw>=8) then
+              ibad_left  = 1     ! 2     !nsw/2 - nsb_x
+              ibad_rght  = nsw   ! nsw-1 ! nsw/2 + nsb_x
+           else
+              ibad_left  = 1
+              ibad_rght  = nsw
+           endif
+           if( ( ipkh(1) <= ibad_left ).or.( ipkh(1) >= ibad_rght ) ) then
                npkx(L)=0.0
            end if
            
