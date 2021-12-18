@@ -1,13 +1,24 @@
 #!/bin/tcsh
 
-set case='probe'
+set case='testing'
 mkdir -p ../${case}/output
 cp *.F90 ../${case}
 cp Makefile ../${case}
+cp -r analysis ../${case}
 
 #cp output/topo_smooth* ../${case}/output/
 
-cd ../${case}
+cd /project/amp/juliob/Topo-generate-devel/Topo/smooth_topo/
+
+set tops=`ls -1 *`
+
+cd /project/amp/juliob/Topo-generate-devel/Topo/${case}
+
+foreach foo ($tops)
+   echo $foo
+   ln -sf /project/amp/juliob/Topo-generate-devel/Topo/smooth_topo/${foo} output/${foo}
+end
+
 
 # Assumes you are in the right directory, i.e, the one with F90 files and namelists
 #----------------------------------------------------------------------------------
@@ -20,58 +31,50 @@ module load compiler/gnu/default
 gmake clean
 gmake
 
-#set ogrid='geos_fv_c360'
-#set Co=16
-#set Fi=1
-#set Nsw=12
-#set Nrs=4
 
-#set ogrid='geos_fv_c720'
-#set Co=8
-#set Fi=1
-#set Nsw=6
-#set Nrs=4
-
-#set ogrid='geos_fv_c48'
-#set Co=96
-#set Fi=1
-#set Nsw=48
-#set Nrs=8
 
 set ogrid='fv_0.9x1.25'
 set Co=60
 set Fi=8
 set Nsw=42
+
+set Co=14
+set Fi=1
+set Nsw=10
+
+# This is now used for all. Doesn't matter, will eliminate
 set Nrs=00
-
-#set ogrid='fv_0.9x1.25'
-#set Co=14
-#set Fi=1
-#set Nsw=10
-#set Nrs=00
-
 
 if ( $ogrid == 'geos_fv_c48' ) then
    set scrip='PE48x288-CF.nc4'
 endif
 if ( $ogrid == 'geos_fv_c90' ) then
    set scrip='PE90x540-CF.nc4'
+   set Co=48
+   set Fi=1
+   set Nsw=34
 endif
 if ( $ogrid == 'geos_fv_c180' ) then
    set scrip='PE180x1080-CF.nc4'
+   set Co=32
+   set Fi=1
+   set Nsw=22
 endif
 if ( $ogrid == 'geos_fv_c360' ) then
    set scrip='PE360x2160-CF.nc4'
+   set Co=16
+   set Fi=1
+   set Nsw=12
 endif
 if ( $ogrid == 'geos_fv_c720' ) then
    set scrip='PE720x4320-CF.nc4'
+   set Co=8
+   set Fi=1
+   set Nsw=6
 endif
 if ( $ogrid == 'fv_0.9x1.25' ) then
    set scrip='fv_0.9x1.25.nc'
 endif
-
-
-
 
 # Create starting namelist cube_to_target.nl
 #---------------------------------------------

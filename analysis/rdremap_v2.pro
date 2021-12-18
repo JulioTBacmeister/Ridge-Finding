@@ -38,6 +38,10 @@ readu,1,nc,npeaks
 
 mxdis=dblarr(nc,nc,6)
 block=dblarr(nc,nc,6)
+anglx=dblarr(nc,nc,6)
+hwdth=dblarr(nc,nc,6)
+clngt=dblarr(nc,nc,6)
+cwght=dblarr(nc,nc,6)
 itrgt=dblarr(nc,nc,6)
 itrgx=dblarr(nc,nc,6)
 profi=dblarr(nc,nc,6)
@@ -48,20 +52,18 @@ isoht=dblarr(nc,nc,6)
 bumps=dblarr(nc,nc,6)
 
 
-;anglx=dblarr(nc,nc,6)
-;hwdth=dblarr(nc,nc,6)
-;clngt=dblarr(nc,nc,6)
-;cwght=dblarr(nc,nc,6)
-
-
 dum=0.d
 readu,1,mxdis
 readu,1,block
-readu,1,profi
-readu,1,uniqi
-readu,1,isoht
-readu,1,bumps
-
+readu,1,dum
+readu,1,dum
+readu,1,anglx
+readu,1,hwdth
+readu,1,cwght
+readu,1,clngt
+readu,1,itrgt
+readu,1,dum
+readu,1,dum
 
 xs=fltarr(npeaks)
 ys=fltarr(npeaks)
@@ -72,12 +74,27 @@ jpks=lonarr(npeaks)
 
 readu,1,xs,ys,xspk,yspk,ipks,jpks
 
+if not keyword_set( cesm2 ) then begin
+readu,1,profi
+readu,1,uniqi
+readu,1,itrgx
+
+  if not eof(1) then begin
+     readu,1,isoht
+     readu,1,bumps
+     readu,1,isowd
+ endif
+
+ print,"End of remap file ",eof(1) 
+
+endif
+
 close,1
 print," read from"
 print,f
 
 cube={raw:terr,dev:terr_dev,smooth:terr_sm,mxdis:mxdis  $ 
-     ,block:block,profi:profi,uniqi:uniqi,rf:fn0,tf:ftopo0}
+     ,block:block,profi:profi,rf:fn0,tf:ftopo0}
 
 
 if keyword_set(fvgrid) then begin

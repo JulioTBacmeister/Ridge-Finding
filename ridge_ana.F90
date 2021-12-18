@@ -1,6 +1,7 @@
 !!!!!++11/1/21 
 !#define SUBSETDBG
 #undef SUBSETDBG
+#define ROTATEBRUSH
 module ridge_ana
 
 use rotation 
@@ -785,7 +786,6 @@ end subroutine find_ridges
 
         iorn       = MAXLOC( vvaa )
 
-#if 1
         mxvrx(ipk) = vvaa( iorn(1) ) !MAXVAL( vvaa )
         mxvry(ipk) = vva2( iorn(1) ) !MAXVAL( vvaa )
         mxdis(ipk) = dex( iorn(1) )
@@ -804,20 +804,6 @@ end subroutine find_ridges
         rwvls(ipk) = rwvl( iorn(1) )
 
         ang00      =  (iorn(1)-1)*(180./nang)*(PI/180.)
-
-#if 0
-        !=========================================
-        ! These are attempts to get closer 
-        ! to the ridge-line location in the
-        ! in the profile. xpkh is a deviation
-        ! along the ridge-perp X-coord. (11/2/21)
-        ! -----
-        ! Replacing with call to subr.'ridgescales'
-        ! below (11/17/21)
-        !==========================================
-        xspk(ipk)  = xs(ipk)  + xpkh(iorn(1))*cos( ang00 )
-        yspk(ipk)  = ys(ipk)  - xpkh(iorn(1))*sin( ang00 )
-#endif
 
         mxds0(ipk) = dex0( iorn(1) )
         mxds1(ipk) = dex1( iorn(1) )
@@ -856,36 +842,6 @@ end subroutine find_ridges
                           suba , rt_diag(:,:,ipk),rtx_diag(:,:,ipk), &
                           isoht(ipk), isowd(ipk), isobs(ipk), & 
                           rdg_profiles_x(:,ipk)  )
-
- 
-#endif
-
-#if 0
-if ( .not.(KEEP_CUESTAS)) then
-! Clean up "goofy" results for inclined planes
-  where ( (nvls == 0) .and. (npks == 0) )
-        mxdis = 0.
-        aniso = 0.
-        mxvrx = 0.
-        mxvry = 0.
-  endwhere
-else
-  write(*,*) " Keeping goofy 'Cuestas' "
-endif
-#endif
-
-
-#if 0
-  deallocate( suba )
-  deallocate( rt )
-  deallocate( subx )
-  deallocate( suby )
-  deallocate( rtx )
-  deallocate( rty )
-  deallocate( dertx )
-  deallocate( derty )
-#endif
-
 
 
   deallocate( rt)
@@ -942,12 +898,15 @@ end subroutine ANISO_ANA
 
     ns0=nsw/2+1
     ns1=ns0+nsw+1
- 
+
+    ! XR is just [1,..,nsw+1]. Fine coord for both NORMAL(X) and ALONG(Y) ridge direction
+
     ipkh    = MAXLOC( ridge ) ! index of MAX peak height in rotated topo avg cross-section
     xshft   = XR( ipkh(1) ) - xmn
 
     ang00   = anglx0 * (PI/180.)
 
+    ! Shift peak/crest location NORMAL to ridge - "X"
     xspk0   = xs0  + xshft * cos( ang00 )
     yspk0   = ys0  - xshft * sin( ang00 )
 
@@ -959,8 +918,12 @@ end subroutine ANISO_ANA
        pcrest = 0.
     end where
    
+    ! Now shift peak/crest location ALONG crest - "Y"
+    !  1) Calculate centroid in Y, diff w/ resp center 
     yshft  = sum( xr * pcrest )/( sum( pcrest )+ 0.1 ) - xmn
-
+    !  2) Shift in cubed sphere coords. Two +'s not a sign
+    !     error.  Combination of conventions for ridges lead 
+    !     to this: 0 <= ang00 <= +180. w/ ang00=0 eq N-S ridge
     xspk0  = xspk0  + yshft *sin( ang00 )
     yspk0  = yspk0  + yshft *cos( ang00 )
 
@@ -985,10 +948,9 @@ end subroutine ANISO_ANA
 
     hwdth0 = (hwd1 + hwd2)
 
-
     rt  = rotby3( suba, 2*nsw+1 , anglx0 )
 
-    ! Take "Y" (and "X")-average of rotated topography.
+    ! "Y" (and "X")-average of rotated topography.
     ! Yields topo profile in X ==> RTX
            !!!ridge = sum( rt(ns0:ns1-1,ns0:ns1-1) , 2 ) /( ns1-ns0 ) ! Y-average 
            !!!crest = sum( rt(ns0:ns1-1,ns0:ns1-1) , 1 ) /( ns1-ns0 ) ! X-average
@@ -1338,25 +1300,25 @@ end subroutine ANISO_ANA
 write(911) ncube,npeaks
 write(911) mxdisC
 write(911) blockC
-write(911) mxvrxC
-write(911) mxvryC
+write(911) profiC
+write(911) uniqidC
+write(911) isohtC
+write(911) bumpsC
+write(911) xs,ys,xspk,yspk,peaks%i,peaks%j
+
+#if 0
 write(911) anglxC
 write(911) hwdthC
 write(911) cwghtC
 write(911) clngtC
-!write(911) itrgtC
+
+write(911) isowdC
+
+write(911) mxvrxC
+write(911) mxvryC
 write(911) fallqC
 write(911) riseqC
-write(911) xs,ys,xspk,yspk,peaks%i,peaks%j
-
-!++11/3/21
-write(911) profiC
-!++11/15../21
-write(911) uniqidC
-write(911) itrgxC
-write(911) isohtC
-write(911) bumpsC
-write(911) isowdC
+#endif
 
 close(911)
 
@@ -1367,6 +1329,7 @@ close(911)
        OPEN (unit = 911, file= trim(ofile$) ,form="UNFORMATTED" )
 write(911) ncube,npeaks
 write(911) itrgtC
+write(911) itrgxC
 write(911) xs,ys,xspk,yspk,peaks%i,peaks%j
 close(911)
 
@@ -1624,10 +1587,11 @@ function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, 
        logical, optional, intent(in) :: block_fill
        logical, optional, intent(in) :: profile_fill
        logical, optional, intent(in) :: bump_fill
+       !!real, optional, intent(out):: brush( -nsw:nsw, -nsw:nsw )
 
        real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: axc
        real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: qc
-       real, dimension(-nsw:nsw,-nsw:nsw) :: suba,sub1
+       real, dimension(-nsw:nsw,-nsw:nsw) :: suba,sub1,sub11
        real, dimension(-nsw:nsw,-nsw:nsw) :: subr,subq,subdis
        real, dimension(-nsw:nsw)          :: xq,yq
        real :: rotangl,dsq,ssq
@@ -1686,19 +1650,31 @@ write(*,*) " in paintridge "
   endif  
 
 !===============================================================
-! Set-up 2*NSW+1 sub1 square for future reconcilaition/annealing.
+! Set-up 2*NSW+1 sub1 square "brush" for future reconcilaition/annealing.
 ! The array SUB1 is supposed to be =1.0 for all points within NSW 
 ! of center, and =0.0 for points further out.
 !===============================================================
   sub1(:,:)=0.
   nql = INT( nsw/1.0 )
+  !nql = INT( nsw/8.0 )
+  !nql = 2
     DO j=-nsw,nsw
     DO i=-nsw,nsw
-       ssq= xq(i)**2+yq(j)**2
+       ssq= SQRT(xq(i)**2+yq(j)**2)
        if (SSQ < nql) sub1(i,j)=1.0
     END DO
     END DO
- 
+
+    sub11(:,:)=0.
+    DO j=-nsw/2,nsw/2
+    DO i=-nsw,nsw
+       sub11(i,j)=1.0
+    END DO
+    END DO
+
+#ifdef ROTATEBRUSH
+    write(*,*) "Using nsw/2 x nsw ROTATED brush in paintridge"
+#endif
 !===============================
 ! Initialize cube sphere arrays 
 ! for "painting"
@@ -1799,6 +1775,12 @@ write(*,*) " in paintridge "
                subdis =  subr * axr(ipk)
              endif
 
+#ifdef ROTATEBRUSH
+             ! rotated "brush"
+             rotangl = - anglx(ipk) 
+             sub1 = rotby3( sub11 , 2*nsw+1, rotangl )
+#endif
+
              !======================================================
              ! Scale sub1 by 1 minus normalized distance 
              ! from current feature location (xs,ys) to diagnosed 
@@ -1877,19 +1859,6 @@ write(*,*) " in paintridge "
                 !------------------------------------
              end if
 
-#if 0
-                ! NO reconciliation.
-                !------------------------------------
-                do jj = -NSW/2,NSW/2
-                do ii = -NSW/2,NSW/2
-                    ip = peaks(ipk)%ip
-                    x0 = INT( xs(ipk) )
-                    y0 = INT( ys(ipk) )
-                       if ( AXC( x0+ii, y0+jj, ip ) < subdis(ii,jj) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
-                end do
-                end do
-                !------------------------------------
-#endif
 
        end if
  
