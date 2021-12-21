@@ -1667,13 +1667,15 @@ write(*,*) " in paintridge "
 
     sub11(:,:)=0.
     DO j=-nsw/2,nsw/2
-    DO i=-nsw,nsw
+    !DO i=-nsw,nsw
+    DO i=-nsw/2,nsw/2
        sub11(i,j)=1.0
     END DO
     END DO
 
 #ifdef ROTATEBRUSH
-    write(*,*) "Using nsw/2 x nsw ROTATED brush in paintridge"
+    write(*,*) "Using nsw/2 x nsw/2 ROTATED brush in paintridge"
+    !write(*,*) "Using nsw/2 x nsw ROTATED brush in paintridge"
 #endif
 !===============================
 ! Initialize cube sphere arrays 
@@ -1795,6 +1797,8 @@ write(*,*) " in paintridge "
                 !------------------------
                 do jj = -NSW/2,NSW/2
                 do ii = -NSW/2,NSW/2
+                !do jj = -NSW,NSW
+                !do ii = -NSW,NSW
                     ip = peaks(ipk)%ip
                     x0 = INT( xspk(ipk) ) + 1
                     y0 = INT( yspk(ipk) ) + 1
@@ -1806,58 +1810,6 @@ write(*,*) " in paintridge "
                 end do
                 end do
                 !------------------------------------
-             if (Lprofifl)  then 
-                ! special extended reconciliation for
-                ! profiles. Sort of "cheaty" but does
-                ! use diagnosed ridge profiles (12/8/21)
-                !-----------------------------------
-                where( abs(subdis) > 8000.)
-                     subdis=0.
-                end where
-#if 1
-                do jj = -NSW,-NSW/2-1
-                do ii = -NSW,NSW
-                    ip = peaks(ipk)%ip
-                    x0 = INT( xspk(ipk) ) + 1
-                    y0 = INT( yspk(ipk) ) + 1
-                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
-                       if ( abs(AXC( x0+ii, y0+jj, ip )) < abs(subdis(ii,jj)) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
-                    endif
-                end do
-                end do
-                do jj =  NSW/2+1,NSW
-                do ii = -NSW,NSW
-                    ip = peaks(ipk)%ip
-                    x0 = INT( xspk(ipk) ) + 1
-                    y0 = INT( yspk(ipk) ) + 1
-                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
-                       if ( abs(AXC( x0+ii, y0+jj, ip )) < abs(subdis(ii,jj)) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
-                    endif
-                end do
-                end do
-                do jj = -NSW/2,NSW/2
-                do ii = -NSW,-NSW/2-1
-                    ip = peaks(ipk)%ip
-                    x0 = INT( xspk(ipk) ) + 1
-                    y0 = INT( yspk(ipk) ) + 1
-                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
-                       if ( abs(AXC( x0+ii, y0+jj, ip )) < abs(subdis(ii,jj)) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
-                    endif
-                end do
-                end do
-                do jj = -NSW/2,NSW/2
-                do ii = NSW/2+1,NSW
-                    ip = peaks(ipk)%ip
-                    x0 = INT( xspk(ipk) ) + 1
-                    y0 = INT( yspk(ipk) ) + 1
-                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
-                       if ( abs(AXC( x0+ii, y0+jj, ip )) < abs(subdis(ii,jj)) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
-                    endif
-                end do
-                end do
-#endif
-                !------------------------------------
-             end if
 
 
        end if

@@ -1,6 +1,18 @@
 #!/bin/tcsh
 
-set case='testing'
+
+if ( "$#argv" != 5) then
+  echo "Wrong number of arguments specified:"
+  #echo "  -arg 1 lat"
+  #echo "  -arg 2 lon"
+  #echo "  -arg 3 nlev"
+  #echo "  -arg 4 case string"
+  exit
+endif
+
+set n = 5
+set case = "$argv[$n]"
+
 mkdir -p ../${case}/output
 cp *.F90 ../${case}
 cp Makefile ../${case}
@@ -31,16 +43,20 @@ module load compiler/gnu/default
 gmake clean
 gmake
 
+set n = 1
+set ogrid = "$argv[$n]"
+set n = 2
+set Co = "$argv[$n]"
+set n = 3
+set Fi = "$argv[$n]"
+set n = 4
+set Nsw = "$argv[$n]"
 
 
-set ogrid='fv_0.9x1.25'
-set Co=60
-set Fi=8
-set Nsw=42
-
-set Co=14
-set Fi=1
-set Nsw=10
+#set ogrid='fv_0.9x1.25'
+#set Co=60
+#set Fi=8
+#set Nsw=42
 
 # This is now used for all. Doesn't matter, will eliminate
 set Nrs=00
@@ -50,31 +66,20 @@ if ( $ogrid == 'geos_fv_c48' ) then
 endif
 if ( $ogrid == 'geos_fv_c90' ) then
    set scrip='PE90x540-CF.nc4'
-   set Co=48
-   set Fi=1
-   set Nsw=34
 endif
 if ( $ogrid == 'geos_fv_c180' ) then
    set scrip='PE180x1080-CF.nc4'
-   set Co=32
-   set Fi=1
-   set Nsw=22
 endif
 if ( $ogrid == 'geos_fv_c360' ) then
    set scrip='PE360x2160-CF.nc4'
-   set Co=16
-   set Fi=1
-   set Nsw=12
 endif
 if ( $ogrid == 'geos_fv_c720' ) then
    set scrip='PE720x4320-CF.nc4'
-   set Co=8
-   set Fi=1
-   set Nsw=6
 endif
 if ( $ogrid == 'fv_0.9x1.25' ) then
    set scrip='fv_0.9x1.25.nc'
 endif
+
 
 # Create starting namelist cube_to_target.nl
 #---------------------------------------------
@@ -101,13 +106,13 @@ echo "/ " >> cube_to_target.nl
 
 
 #PHASE 1.0
-# --- smooth topo w/ 60-point smoother
+# --- smooth topo w/ $Co-point smoother
 sed '/lread_smooth_topofile/s/.true./.false./' < cube_to_target.nl > tmp.nl
 cp tmp.nl cube_to_target.nl
 #./cube_to_target
 
 #PHASE 1.1
-# --- find ridges on 60-point deviations
+# --- find ridges on $Co-point deviations
 # --- and map to FV 1x1 grid
 sed '/lread_smooth_topofile/s/.false./.true./' < cube_to_target.nl > tmp2.nl
 cp tmp2.nl cube_to_target.nl
