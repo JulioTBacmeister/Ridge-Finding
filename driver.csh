@@ -60,7 +60,7 @@ echo "Coarse radius="$Co
 echo "fine radius="$Fi
 echo "output grid="$ogrid
 
-touch ../$case/"Doing_this__Co"$Co"_Fi"$Fi"_Nsw"$Nsw"_grid"$ogrid
+touch ../$case/"Doing_this__Co"$Co"_Fi"$Fi"_Nsw"$Nsw"_grid_"$ogrid
 
 ./create_topo.csh $ogrid $Co $Fi $Nsw $case
 
