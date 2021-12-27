@@ -1311,13 +1311,14 @@ write(911) anglxC
 write(911) hwdthC
 write(911) cwghtC
 write(911) clngtC
-
 write(911) isowdC
 
+#if 0
 write(911) mxvrxC
 write(911) mxvryC
 write(911) fallqC
 write(911) riseqC
+#endif
 #endif
 
 close(911)
@@ -1418,7 +1419,8 @@ close(911)
 
      do JJ = 1,nsubr
         insrt(JJ)   = JJ
-        imprtnc(JJ) = mxvrx_target(i,JJ) * wghts_target(i,JJ) * aniso_target(i,JJ)
+        !imprtnc(JJ) = mxvrx_target(i,JJ) * wghts_target(i,JJ) * aniso_target(i,JJ)
+        imprtnc(JJ) = mxdis_target(i,JJ) * clngt_target(i,JJ) 
      end do
 
      do JJ = 1,nsubr-1
@@ -1533,6 +1535,20 @@ close(911)
      end do
      do JJ = 1,nsubr
         count_target(i,JJ) = tmp2( insrt(JJ) )
+     end do
+
+     do JJ = 1,nsubr
+        tmp2(JJ) =  isoht_target(i,JJ)
+     end do
+     do JJ = 1,nsubr
+        isoht_target(i,JJ) = tmp2( insrt(JJ) )
+     end do
+ 
+     do JJ = 1,nsubr
+        tmp2(JJ) =  isowd_target(i,JJ)
+     end do
+     do JJ = 1,nsubr
+        isowd_target(i,JJ) = tmp2( insrt(JJ) )
      end do
 
   end do

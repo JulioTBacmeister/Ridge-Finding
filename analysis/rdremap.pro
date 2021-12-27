@@ -76,7 +76,10 @@ close,1
 print," read from"
 print,f
 
-cube={raw:terr,dev:terr_dev,smooth:terr_sm,mxdis:mxdis  $ 
+pdev=terr_dev
+pdev(where(pdev lt 0))=0.
+
+cube={raw:terr,dev:terr_dev,smooth:terr_sm,pdev:pdev,mxdis:mxdis  $ 
      ,block:block,profi:profi,uniqi:uniqi,rf:fn0,tf:ftopo0}
 
 
