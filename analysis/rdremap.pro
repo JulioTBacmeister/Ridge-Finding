@@ -38,8 +38,6 @@ readu,1,nc,npeaks
 
 mxdis=dblarr(nc,nc,6)
 block=dblarr(nc,nc,6)
-itrgt=dblarr(nc,nc,6)
-itrgx=dblarr(nc,nc,6)
 profi=dblarr(nc,nc,6)
 uniqi=dblarr(nc,nc,6)
 
@@ -72,6 +70,23 @@ jpks=lonarr(npeaks)
 
 readu,1,xs,ys,xspk,yspk,ipks,jpks
 
+if not eof(1) then begin
+   anglx=dblarr(nc,nc,6)
+   hwdth=dblarr(nc,nc,6)
+   clngt=dblarr(nc,nc,6)
+   cwght=dblarr(nc,nc,6)
+   isowd=dblarr(nc,nc,6)
+   extension=1
+   readu,1,anglx
+   readu,1,hwdth
+   readu,1,cwght
+   readu,1,clngt
+   readu,1,isowd
+   print,' Extended remap file '
+endif
+
+
+
 close,1
 print," read from"
 print,f
@@ -79,8 +94,16 @@ print,f
 pdev=terr_dev
 pdev(where(pdev lt 0))=0.
 
+if not keyword_set(extension) then begin
 cube={raw:terr,dev:terr_dev,smooth:terr_sm,pdev:pdev,mxdis:mxdis  $ 
-     ,block:block,profi:profi,uniqi:uniqi,rf:fn0,tf:ftopo0}
+     ,block:block,profi:profi,uniqi:uniqi,bumps:bumps  $ 
+     ,rf:fn0,tf:ftopo0}
+endif else begin
+cube={raw:terr,dev:terr_dev,smooth:terr_sm,pdev:pdev,mxdis:mxdis  $ 
+     ,block:block,profi:profi,uniqi:uniqi,bumps:bumps  $ 
+     ,anglx:anglx,hwdth:hwdth,clngt:clngt  $ 
+     ,rf:fn0,tf:ftopo0}
+endelse
 
 
 if keyword_set(fvgrid) then begin

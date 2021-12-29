@@ -3,10 +3,6 @@
 
 if ( "$#argv" != 5) then
   echo "Wrong number of arguments specified:"
-  #echo "  -arg 1 lat"
-  #echo "  -arg 2 lon"
-  #echo "  -arg 3 nlev"
-  #echo "  -arg 4 case string"
   exit
 endif
 

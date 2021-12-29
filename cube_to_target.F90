@@ -1036,7 +1036,7 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   use ridge_ana, only: nsubr, mxdis_target, mxvrx_target, mxvry_target, ang22_target, &
                        anglx_target, aniso_target, anixy_target, hwdth_target, wghts_target, & 
                        clngt_target, cwght_target, count_target,riseq_target,grid_length_scale, &
-                       fallq_target,isowd_target,isoht_target
+                       fallq_target,isowd_target,isoht_target,isowdq_target,isohtq_target
 
   use shared_vars, only : terr_uf_target, sgh_uf_target, area_target
   use shr_kind_mod, only: r8 => shr_kind_r8
@@ -1067,7 +1067,8 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   integer             :: status    ! return value for error control of netcdf routin
 
   integer             :: mxdisid, ang22id, anixyid, anisoid, mxvrxid, mxvryid, hwdthid, wghtsid, anglxid, gbxarid
-  integer             :: sghufid, terrufid, clngtid, cwghtid, countid,riseqid,fallqid, isowdid, isohtid
+  integer             :: sghufid, terrufid, clngtid, cwghtid, countid,riseqid,fallqid, isowdid, isohtid 
+  integer             :: isowdqid, isohtqid
 
   integer             :: ThisId
 
@@ -1334,6 +1335,10 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      status = nf_def_var (foutid,'ISOWD', NF_DOUBLE, 3, rdgqdim , isowdid)
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'ISOHT', NF_DOUBLE, 3, rdgqdim , isohtid)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     status = nf_def_var (foutid,'ISOWDQ', NF_DOUBLE, 2, rdgqdim , isowdqid)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     status = nf_def_var (foutid,'ISOHTQ', NF_DOUBLE, 2, rdgqdim , isohtqid)
      if (status .ne. NF_NOERR) call handle_err(status)
 #endif
 
@@ -1618,6 +1623,16 @@ end if
      status = nf_put_var_double (foutid, isowdid, isowd_target)
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing ISOWD data"
+
+     print*,"writing ISOHTQ  data",MINVAL(isohtq_target),MAXVAL(isohtq_target)
+     status = nf_put_var_double (foutid, isohtqid, isohtq_target)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     print*,"done writing ISOHTQ data"
+
+     print*,"writing ISOWDQ  data",MINVAL(isowdq_target),MAXVAL(isowdq_target)
+     status = nf_put_var_double (foutid, isowdqid, isowdq_target)
+     if (status .ne. NF_NOERR) call handle_err(status)
+     print*,"done writing ISOWDQ data"
 
 #endif
 

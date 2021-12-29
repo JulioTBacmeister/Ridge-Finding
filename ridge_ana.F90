@@ -22,6 +22,7 @@ public anglx_target,aniso_target,mxdis_target,hwdth_target
 public mxvrx_target,mxvry_target,bsvar_target,wghts_target,riseq_target
 public ang22_target,anixy_target,clngt_target,cwght_target,count_target
 public nsubr,grid_length_scale,fallq_target,isoht_target,isowd_target
+public isohtq_target,isowdq_target
 
 public peak_type
 
@@ -50,6 +51,7 @@ public peak_type
   real(r8), allocatable, dimension(:,:) :: ang22_target,anixy_target,clngt_target,cwght_target
   real(r8), allocatable, dimension(:,:) :: count_target,riseq_target,fallq_target
   real(r8), allocatable, dimension(:,:) :: isoht_target,isowd_target
+  real(r8), allocatable, dimension(:)   :: isohtq_target,isowdq_target
   !!,rwpks_target
 
     INTEGER (KIND=int_kind),allocatable :: UQRID(:) 
@@ -988,7 +990,11 @@ end subroutine ANISO_ANA
     !----------------------
     ! Length scale 
     !---------------------
-    isowd0  = sqrt(1.0* count( (iso2d > isox ) ) )
+    ! i) straight SQRT of area
+    !isowd0  = sqrt(1.0* count( (iso2d > isox ) ) )
+    ! ii) Assume "isotropy" is smeared out along 
+    !     lenght of ridge.
+    isowd0  = (1.0* count( (iso2d > isox ) ) ) / max( clngt0 , 1. )
    
     !----------------------
     ! Estimate "base" for 
@@ -1105,6 +1111,13 @@ end subroutine ANISO_ANA
     if( alloc_error /= 0 ) then; print*,'Program could not allocate space for fallq_target'; stop; endif
     isoht_target = 0.
 
+    allocate (isowdq_target(ntarget),stat=alloc_error )
+    if( alloc_error /= 0 ) then; print*,'Program could not allocate space for fallq_target'; stop; endif
+    isowdq_target = 0.
+    allocate (isohtq_target(ntarget),stat=alloc_error )
+    if( alloc_error /= 0 ) then; print*,'Program could not allocate space for fallq_target'; stop; endif
+    isohtq_target = 0.
+
      npeaks=size(mxdis)
 
      itrgtC = 0.
@@ -1129,12 +1142,6 @@ end subroutine ANISO_ANA
         write(*,*) " about to call paintridge2cube "
      tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley )
      mxdisC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-!++ new after 11/21
-     tmpx6 = paintridge2cube ( isoht ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     isohtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-     tmpx6 = paintridge2cube ( isowd ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     isowdC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-!--
      tmpx6 = paintridge2cube ( anglx ,  ncube,nhalo,nsb,nsw,lzerovalley )
      anglxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
      tmpx6 = paintridge2cube ( aniso ,  ncube,nhalo,nsb,nsw,lzerovalley )
@@ -1159,19 +1166,23 @@ end subroutine ANISO_ANA
      tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, block_fill=.true.   )
      blockC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
-!++11/3/21
+!-----------------
      tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, profile_fill=.true.   )
      profiC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-!--11/3/21
 
 
-!++11/15/21
+
+!----------------
      tmpx6 = paintridge2cube ( uniqid ,  ncube,nhalo,nsb,nsw,lzerovalley )
      uniqidC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
-!++11/30/21
      tmpx6 = paintridge2cube ( isoht ,  ncube,nhalo,nsb,nsw,lzerovalley, bump_fill=.true. )
      bumpsC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( isoht ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     isohtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( isowd ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     isowdC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+!--
 
 
     i_last = -9999
@@ -1287,6 +1298,12 @@ end subroutine ANISO_ANA
 
      call latlonangles (target_center_lon,target_center_lat,ntarget)
 
+
+     isowdq_target  = SUM( isowd_target * clngt_target , 2 ) / ( SUM( clngt_target , 2 ) + 1.0 )
+     isohtq_target  = SUM( isoht_target * clngt_target , 2 ) / ( SUM( clngt_target , 2 ) + 1.0 )
+
+
+
        call DATE_AND_TIME( DATE=date$,TIME=time$)
 
        write( ofile$ , &
@@ -1306,7 +1323,7 @@ write(911) isohtC
 write(911) bumpsC
 write(911) xs,ys,xspk,yspk,peaks%i,peaks%j
 
-#if 0
+#if 1
 write(911) anglxC
 write(911) hwdthC
 write(911) cwghtC
@@ -1593,7 +1610,7 @@ end function mapridge2cube
 !======================================
 !++11/3/21 Added profile_fill
 function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, crest_weight, & 
-                           block_fill, profile_fill, bump_fill ) result( axc )
+                           block_fill, profile_fill, bump_fill, dott_fill ) result( axc )
    
        integer, intent(in) :: ncube,nhalo,nsb,nsw
        real, intent(in), dimension( size(xs) ) :: axr
@@ -1603,6 +1620,7 @@ function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, 
        logical, optional, intent(in) :: block_fill
        logical, optional, intent(in) :: profile_fill
        logical, optional, intent(in) :: bump_fill
+       logical, optional, intent(in) :: dott_fill
        !!real, optional, intent(out):: brush( -nsw:nsw, -nsw:nsw )
 
        real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: axc
@@ -1612,7 +1630,7 @@ function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, 
        real, dimension(-nsw:nsw)          :: xq,yq
        real :: rotangl,dsq,ssq
        integer :: i,j,x0,x1,y0,y1,ip,ns0,ns1,ii,jj,norx,nory,nql,ncl,nhw,ipk,npeaks,jw,iw
-       logical :: lcrestln,lcrestwt,lblockfl,lprofifl,lbumpfl
+       logical :: lcrestln,lcrestwt,lblockfl,lprofifl,lbumpfl,ldottfl
 !---------------------------------------------------
 
 
@@ -1638,11 +1656,15 @@ write(*,*) " in paintridge "
     else
        lprofifl = .false.
     endif
-!++ 11/30/21
     if(present(bump_fill)) then
       lbumpfl = bump_fill
     else
        lbumpfl = .false.
+    endif
+    if(present(dott_fill)) then
+      ldottfl = dott_fill
+    else
+       ldottfl = .false.
     endif
 
 
@@ -1680,14 +1702,21 @@ write(*,*) " in paintridge "
        if (SSQ < nql) sub1(i,j)=1.0
     END DO
     END DO
-
+  
     sub11(:,:)=0.
-    DO j=-nsw/2,nsw/2
-    !DO i=-nsw,nsw
-    DO i=-nsw/2,nsw/2
-       sub11(i,j)=1.0
-    END DO
-    END DO
+    if (.NOT.lprofifl) then
+       DO j=-nsw/2,nsw/2
+       DO i=-nsw/2,nsw/2
+          sub11(i,j)=1.0
+       END DO
+       END DO
+    else
+       DO j=-nsw/2,nsw/2
+       DO i=-nsw  ,nsw
+          sub11(i,j)=1.0
+       END DO
+       END DO
+    end if
 
 #ifdef ROTATEBRUSH
     write(*,*) "Using nsw/2 x nsw/2 ROTATED brush in paintridge"
@@ -1739,7 +1768,6 @@ write(*,*) " in paintridge "
                subr = rotby3( suba , 2*nsw+1, rotangl )
                subdis = subr 
              end if
-!--11/3/21
              if(Lblockfl) then
                suba(:,:) = 0.
                ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
@@ -1752,7 +1780,6 @@ write(*,*) " in paintridge "
                subr = rotby3( suba , 2*nsw+1, rotangl )
                subdis = subr  * axr(ipk)
              end if
-!++11/30/21
              if(Lbumpfl) then
                suba(:,:) = 0.
                ncl  = MIN( INT(isowd(ipk)/2) , nsw/2 )
@@ -1767,7 +1794,15 @@ write(*,*) " in paintridge "
                !subr = suba !  rotby3( suba , 2*nsw+1, rotangl )
                subdis = suba  * axr(ipk)
              end if
-!--
+             if(Ldottfl) then
+               suba(:,:) = 0.
+               do jw=0,0
+               do iw=0,0
+                  suba( iw , jw ) = 1.0 
+               end do
+               end do
+               subdis = suba  * axr(ipk)
+             end if
              if(Lcrestwt) then
                suba(:,:) = 0.
                ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
@@ -1784,7 +1819,8 @@ write(*,*) " in paintridge "
                subr = rotby3( suba , 2*nsw+1, rotangl )
                subdis = subr * axr(ipk)
              end if
-             if( (.not.(Lcrestln)).and.(.not.(Lcrestwt)).and.(.not.(Lblockfl)).and.(.not.(Lprofifl)).and.(.not.(Lbumpfl)) ) then
+             if( (.not.(Lcrestln)).and.(.not.(Lcrestwt)).and.(.not.(Lblockfl)) & 
+            .and.(.not.(Lprofifl)).and.(.not.(Lbumpfl)) .and.(.not.(Ldottfl) ) ) then
                suba(:,:) = 0.
                ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
                suba( 0 , -ncl:ncl ) = 1.        
@@ -1809,6 +1845,11 @@ write(*,*) " in paintridge "
              dsq    = 1.0 - SQRT( (xs(ipk)-xspk(ipk))**2 + (ys(ipk)-yspk(ipk))**2 )/nsw
              subq   = sub1 * dsq
 
+             where( abs(subdis)>8000. )
+                  subdis = 0.
+             end where
+
+             if(.NOT.lprofifl) then
                 ! original reconciliation
                 !------------------------
                 do jj = -NSW/2,NSW/2
@@ -1825,8 +1866,29 @@ write(*,*) " in paintridge "
                     endif
                 end do
                 end do
+              else
                 !------------------------------------
-
+                ! special reconciliation
+                !------------------------
+                do jj = -NSW  ,NSW
+                do ii = -NSW  ,NSW 
+                !do jj = -NSW,NSW
+                !do ii = -NSW,NSW
+                    ip = peaks(ipk)%ip
+                    x0 = INT( xspk(ipk) ) + 1
+                    y0 = INT( yspk(ipk) ) + 1
+                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
+                      if( (abs(ii) <= NSW/2).AND.(abs(ii) <= NSW/2) ) then
+                         if ( QC( x0+ii, y0+jj, ip ) <= subq(ii,jj) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
+                         if ( QC( x0+ii, y0+jj, ip ) <= subq(ii,jj) )  QC( x0+ii, y0+jj, ip )  = subq(ii,jj)
+                      else
+                         if ( abs(subdis(ii,jj)) >= abs( AXC( x0+ii, y0+jj, ip )) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
+                      end if
+                    endif
+                end do
+                end do
+                !------------------------------------
+             end if
 
        end if
  

@@ -1,46 +1,27 @@
+pro gridjeck,xcase=xcase,fi=fi,co=co,nsw=nsw,nc=nc,ogrid=ogrid,quick=quick $
+            ,rema=rema,fcam=fcam,topo=topo,grem=grem,tg=tg $
+            ,cu=cu,latt=latt,lont=lont,itrgt=itrgt
+
  ;d='/project/amp/juliob/Topo-generate-devel/Topo/Ridge-Finding.git/output/'
 
-d='../output/'
-nc=3000L
-tg='/project/amp/juliob/Topo-generate-devel/Topo/inputdata/cubed-sphere-topo/gmted2010_modis-ncube3000-stitch.nc'
-ogrid='fv_0.9x1.25'
-Co=60
-Fi=8
-Nsw=42
-Co$  = 'Co'+padstring(Co,/e2)
-Fi$  = 'Fi'+padstring(Fi,/e2)
-Nsw$ = 'Nsw'+padstring(Nsw,/e2)
+if not keyword_set(xcase) then begin
+   print,'Need xcase'
+   stop
+endif 
+if not keyword_set(nc) then begin
+   nc=3000L
+endif 
+
+if keyword_set(quick) then begin
+   nc=3000L
+   ogrid='fv_0.9x1.25'
+   Co=60
+   Fi=8
+   Nsw=42
+endif
 
 
-
-;fn = 'remap_nc3000_Nsw042_Nrs008_Co060_Fi008_vX_'
-fn = 'remap_nc3000_' + Nsw$ +'_Nrs000_' + Co$ + '_'+ Fi$ +'_vX_'
-soo=file_search( d+fn+'*.dat')
-nsoo=n_elements(soo)
-rema=soo( nsoo -1 )
-
-;fn = 'topo_smooth_nc3000_Co060_Fi008'
-fn = 'topo_smooth_nc3000_' + Co$ + '_' + Fi$
-soo=file_search( d+fn+'*.dat')
-nsoo=n_elements(soo)
-topo=soo( nsoo-1 )
-
-grem =d+'grid_remap_nc3000_' + ogrid + '.dat'
-
-; fv_0.9x1.25_nc3000_Nsw042_Nrs000_Co060_Fi008_20211222.nc
-fn = ogrid + '_nc3000_'+Nsw$+'_Nrs000_'+Co$+'_'+Fi$+'_'
-
-soo=file_search( d+fn+'*.nc')
-nsoo=n_elements(soo)
-fcam =soo( nsoo-1 )
-
-print,tg
-print,topo
-print,rema
-print,grem
-print,fcam
-
-STOP
+fnames,xc=xcase,co=co,fi=fi,ns=nsw,og=ogrid,fcam=fcam,grem=grem,rema=rema,topo=topo,tg=tg
 
 rdgrid,grem=grem,itrgt=itrgt
 rncvar,f=tg,get='lon',dat=lont
@@ -50,20 +31,33 @@ rdremap,rem=rema,top=topo,cube=cu
 lont = reform( lont, nc , nc, 6)
 latt = reform( latt, nc , nc, 6)
 
-STOP
+
+
+if ogrid eq 'fv_0.9x1.25' then begin
+
+usoo=where( lont gt -130+360. and lont lt -70+360. and latt gt 25 and latt lt 55 )
 
 
 oo=where( lont gt -110+360. and lont lt -100+360. and latt gt 37 and latt lt 42 )
 
+ooo=where( latt gt 39.9 and latt lt 40.1 and lont gt 253.5 and lont lt 254.)
+poo=where( itrgt eq 39948.0)  ; Front range
 
+;IDL> help,poo
+;POO             LONG      = Array[1330]
+;IDL> oplot,lont(poo),latt(poo),ps=3
+;IDL> print,lonm(230)
+;       287.50000
+;IDL> print,lonm(210)
+;       262.50000
+;IDL> print,lonm(200)
+;       250.00000
+;IDL> print,lonm(205)
+;       256.25000
+;IDL> print,lonm(203)
+;       253.75000
 
-hdp = fltarr( 120,120, 6)
-hdb = fltarr( 120,120, 6)
+endif
 
-for p=0,5 do begin
-
-hdp(*,*,p)=histo_2d(  smoothxy( c1.dev(*,*,p)+c2.dev(*,*,p),3,3)  , smoothxy(c1.profi(*,*,p)+c2.profi(*,*,p),3,3),xmin=-2000,xmax=4000,ymin=-2000,ymax=4000,ybin=50,xbin=50,xvec=xv,yvec=yv)                                                                                                                                      
-hdb(*,*,p)=histo_2d(  smoothxy( c1.dev(*,*,p)+c2.dev(*,*,p),3,3)  , smoothxy(c1.block(*,*,p)+c2.block(*,*,p),3,3),xmin=-2000,xmax=4000,ymin=-2000,ymax=4000,ybin=50,xbin=50,xvec=xv,yvec=yv)
-
-endfor
+STOP
 end
