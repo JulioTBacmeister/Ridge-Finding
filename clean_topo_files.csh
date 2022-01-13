@@ -1,8 +1,17 @@
 #!/bin/tcsh
 
-# Assumes you are in the right directory, i.e, the one with F90 files and namelists
+# Assumes you are in the 'case' directory
 #----------------------------------------------------------------------------------
+set n = 1
+set ogrid = "$argv[$n]"
 
+cd output
+set foo=`ls -1t ${ogrid}*.nc`
+cd ..
+echo $foo[1]
+
+
+mkdir -p cleaned
 
 #---------------------------------------------------------------------------------
 # Dec 2021
@@ -10,4 +19,6 @@
 # Apparently it is OK to remove variables that aren't in the file.
 
 
-#ncks -x -v ISOWD,ISOHT,WGHTS,ANGLX,MXVRX,MXVRY,SGH_UF,TERR_UF,FALLQ,RISEQ,COUNT,CWGHT raw_file clean_file 
+ncks -x -v ISOWD,ISOHT,ISOWDQ,ISOHTQ,WGHTS,ANGLX,MXVRX,MXVRY,SGH_UF,TERR_UF,FALLQ,RISEQ,COUNT,CWGHT  output/$foo[1] cleaned/$foo[1]
+
+exit 0

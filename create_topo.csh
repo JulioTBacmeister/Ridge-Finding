@@ -3,6 +3,12 @@
 
 if ( "$#argv" != 5) then
   echo "Wrong number of arguments specified:"
+set n = 1
+  echo "ogrid = argv[1]"
+  echo "Co    = argv[2]"
+  echo "Fi    = argv[3]"
+  echo "Nsw   = argv[4]"
+  echo "case  = argv[5]"
   exit
 endif
 
@@ -12,6 +18,7 @@ set case = "$argv[$n]"
 mkdir -p ../${case}/output
 cp *.F90 ../${case}
 cp Makefile ../${case}
+cp clean_topo_files.csh ../${case}
 cp -r analysis ../${case}
 
 #cp output/topo_smooth* ../${case}/output/
@@ -72,8 +79,17 @@ endif
 if ( $ogrid == 'geos_fv_c720' ) then
    set scrip='PE720x4320-CF.nc4'
 endif
+if ( $ogrid == 'geos_fv_c1440' ) then
+   set scrip='PE1440x8640-CF.nc4'
+endif
 if ( $ogrid == 'fv_0.9x1.25' ) then
    set scrip='fv_0.9x1.25.nc'
+endif
+if ( $ogrid == 'ne120pg3' ) then
+   set scrip='ne120pg3.nc'
+endif
+if ( $ogrid == 'ne30pg3' ) then
+   set scrip='ne30pg3.nc'
 endif
 
 
@@ -117,11 +133,10 @@ cp tmp2.nl cube_to_target.nl
 
 #skipping Greenland "edge roughening"
 
-exit
-cd output
-set foo=`ls -1t ${ogrid}*Co*${Co}_Fi*${Fi}*`
-echo "now clean-up "${foo}
-echo "now clean-up the LATEST "${foo[1]}
 
+
+echo "now clean-up the topo file"
+
+./clean_topo_files.csh $ogrid
 
 exit

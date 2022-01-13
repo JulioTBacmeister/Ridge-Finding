@@ -291,7 +291,9 @@ program convterr
      if (da_min_target==0) then !bug with MPAS files
         jmax_segments = 100000
      else
-        jmax_segments = ncorner*NINT(da_min_target/da_min_ncube)
+        write(*,*) "using dynamic estimate for jmax_segments " 
+        !++ jtb : Increased by 4x. Needed for c1440 FV3
+        jmax_segments = 4 * ncorner*NINT(da_min_target/da_min_ncube)
      end if
      write(*,*) "ncorner, da_min_target, da_min_ncube =", ncorner, da_min_target, da_min_ncube
      write(*,*) "jmax_segments",jmax_segments,da_min_target,da_min_ncube

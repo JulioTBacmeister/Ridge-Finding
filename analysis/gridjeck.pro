@@ -11,6 +11,9 @@ endif
 if not keyword_set(nc) then begin
    nc=3000L
 endif 
+if not keyword_set(ogrid) then begin
+   ogrid='fv_0.9x1.25'
+endif 
 
 if keyword_set(quick) then begin
    nc=3000L
@@ -26,10 +29,12 @@ fnames,xc=xcase,co=co,fi=fi,ns=nsw,og=ogrid,fcam=fcam,grem=grem,rema=rema,topo=t
 rdgrid,grem=grem,itrgt=itrgt
 rncvar,f=tg,get='lon',dat=lont
 rncvar,f=tg,get='lat',dat=latt
+rncvar,f=tg,get='var30',dat=var30
 rdremap,rem=rema,top=topo,cube=cu
 
-lont = reform( lont, nc , nc, 6)
-latt = reform( latt, nc , nc, 6)
+var30 = reform( var30 , nc , nc, 6)
+lont  = reform(  lont , nc , nc, 6)
+latt  = reform(  latt , nc , nc, 6)
 
 
 
