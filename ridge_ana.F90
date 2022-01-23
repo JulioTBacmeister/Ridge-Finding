@@ -1140,50 +1140,69 @@ end subroutine ANISO_ANA
     endif
 
         write(*,*) " about to call paintridge2cube "
+        write(*,*) " painting MXDIS "
      tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley )
      mxdisC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+        write(*,*) " painting ANGLX "
      tmpx6 = paintridge2cube ( anglx ,  ncube,nhalo,nsb,nsw,lzerovalley )
      anglxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+        write(*,*) " painting ANISO "
      tmpx6 = paintridge2cube ( aniso ,  ncube,nhalo,nsb,nsw,lzerovalley )
      anisoC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+        write(*,*) " painting MXVRX "
      tmpx6 = paintridge2cube ( mxvrx ,  ncube,nhalo,nsb,nsw,lzerovalley )
      mxvrxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+        write(*,*) " painting MXVRY "
      tmpx6 = paintridge2cube ( mxvry ,  ncube,nhalo,nsb,nsw,lzerovalley )
      mxvryC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+        write(*,*) " painting BSVAR "
      tmpx6 = paintridge2cube ( bsvar ,  ncube,nhalo,nsb,nsw,lzerovalley )
      bsvarC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+        write(*,*) " painting HWDTH "
      tmpx6 = paintridge2cube ( hwdth ,  ncube,nhalo,nsb,nsw,lzerovalley )
      hwdthC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+        write(*,*) " painting CLNGT "
      tmpx6 = paintridge2cube ( clngth ,  ncube,nhalo,nsb,nsw,lzerovalley, crest_length=.true. )
      clngtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+        write(*,*) " painting CWGHT "
      tmpx6 = paintridge2cube ( clngth ,  ncube,nhalo,nsb,nsw,lzerovalley, crest_weight=.true. )
      cwghtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+        write(*,*) " painting FALLQ "
      tmpx6 = paintridge2cube ( fallq ,  ncube,nhalo,nsb,nsw,lzerovalley )
      fallqC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+         write(*,*) " painting RISEQ "
      tmpx6 = paintridge2cube ( riseq ,  ncube,nhalo,nsb,nsw,lzerovalley )
      riseqC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
+        write(*,*) " painting BLOCK "
      tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, block_fill=.true.   )
      blockC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
 !-----------------
-     tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, profile_fill=.true.   )
-     profiC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     !tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, profile_fill=.true.   )
+     !profiC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
 
 
 !----------------
+        write(*,*) " painting UNIQID "
      tmpx6 = paintridge2cube ( uniqid ,  ncube,nhalo,nsb,nsw,lzerovalley )
      uniqidC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
+        write(*,*) " painting BUMPS "
      tmpx6 = paintridge2cube ( isoht ,  ncube,nhalo,nsb,nsw,lzerovalley, bump_fill=.true. )
      bumpsC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+        write(*,*) " painting ISOHT "
      tmpx6 = paintridge2cube ( isoht ,  ncube,nhalo,nsb,nsw,lzerovalley )
      isohtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+        write(*,*) " painting ISOWD "
      tmpx6 = paintridge2cube ( isowd ,  ncube,nhalo,nsb,nsw,lzerovalley )
      isowdC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 !--
 
+
+     tmpx6  = fleshout ( ncube,nhalo,nsb,nsw,mxdisC,hwdthC,anglxC )
+     profiC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
     i_last = -9999
 
@@ -1573,10 +1592,6 @@ close(911)
 
 end subroutine importancesort
 
-
-
-
-
 !======================================
 
 function mapridge2cube ( a, norx, nory,xs,ys,xv,yv,ncube,nhalo,nsb ) result( axc )
@@ -1606,6 +1621,57 @@ function mapridge2cube ( a, norx, nory,xs,ys,xv,yv,ncube,nhalo,nsb ) result( axc
      end do
 
 end function mapridge2cube
+!======================================
+!++1/22/22 Added 
+function fleshout ( ncube,nhalo,nsb,nsw,mxdisC,hwdthC,anglxC ) result( axc )
+   
+       integer, intent(in) :: ncube,nhalo,nsb,nsw
+       real(KIND=dbl_kind), intent(in), dimension( ncube, ncube, 6 ) :: mxdisC
+       real(KIND=dbl_kind), intent(in), dimension( ncube, ncube, 6 ) :: hwdthC
+       real(KIND=dbl_kind), intent(in), dimension( ncube, ncube, 6 ) :: anglxC
+
+       real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: axc
+       real, dimension(-nsw:nsw,-nsw:nsw) :: suba,sub1,sub11
+       real, dimension(-nsw:nsw,-nsw:nsw) :: subr,subq,subdis
+       real, dimension(-nsw:nsw)          :: xq,yq
+       real :: rotangl,dsq,ssq
+       integer :: i,j,x0,x1,y0,y1,ip,ns0,ns1,ii,jj,norx,nory,nql,ncl,nhw,ipk,npeaks,jw,iw
+!---------------------------------------------------
+
+
+write(*,*) " in fleshout "
+
+  do ip=1,6
+  do j=1,ncube
+  do i=1,ncube
+     if(mxdisC(i,j,ip)>=1.0) then
+       suba(:,:) = 0.
+       nhw  = MIN( INT(hwdthC(i,j,ip)/2) , nsw/2 )
+       do jw=-nhw,nhw
+          suba( jw , -1:1 ) = 1.-1.0*abs(jw)/nhw
+       end do
+       rotangl = - anglxC(i,j,ip) 
+       subr = rotby3( suba , 2*nsw+1, rotangl )
+       subdis = subr  * mxdisC(i,j,ip)
+
+                ! Reconstruct 
+                !------------------------
+                do jj = -NSW/2,NSW/2
+                do ii = -NSW/2,NSW/2
+                    x0 = i ! INT( xspk(ipk) ) + 1
+                    y0 = j ! INT( yspk(ipk) ) + 1
+                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
+                       if ( subdis(ii,jj) >=  AXC( x0+ii, y0+jj, ip ) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
+                    endif
+                end do
+                end do
+     end if
+  end do
+  end do
+  write(*,*)" fin fleshout panel=",ip
+  end do
+
+end function fleshout
 
 !======================================
 !++11/3/21 Added profile_fill
