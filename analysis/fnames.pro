@@ -1,5 +1,6 @@
 pro fnames,xcase=xcase,co=co,fi=fi,nsw=nsw,ogrid=ogrid $
-          ,rema=rema,fcam=fcam,topo=topo,grem=grem,tg=tg
+          ,rema=rema,fcam=fcam,topo=topo,grem=grem,tg=tg $
+          ,list=list
 
  ;d='/project/amp/juliob/Topo-generate-devel/Topo/Ridge-Finding.git/output/'
 
@@ -38,10 +39,19 @@ soo=file_search( d+fn+'*.nc')
 nsoo=n_elements(soo)
 fcam =soo( nsoo-1 )
 
+fn = 'Ridge_list_nc3000_' + Nsw$ +'_' + Co$ + '_'+ Fi$
+soo=file_search( d+fn+'*.dat')
+nsoo=n_elements(soo)
+list=soo( nsoo -1 )
+
+
+
+
 print,tg
 print,topo
 print,rema
 print,grem
+print,list
 print,fcam
 
 

@@ -681,7 +681,6 @@ subroutine wrtncdf_unstructured(n,terr,landfrac,sgh,sgh30,landm_coslat,lon,lat,a
 
   if (status .ne. NF_NOERR) call handle_err(status)
 
-write(*,*) "NUTBAR"
   if (Lfind_ridges) then 
 
      status = nf_def_var (foutid,'SGH_UF', NF_DOUBLE, 1, nid(1), sghufid)
@@ -690,18 +689,16 @@ write(*,*) "NUTBAR"
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'GBXAR', NF_DOUBLE, 1, nid(1), gbxarid)
      if (status .ne. NF_NOERR) call handle_err(status)
-write(*,*) "POOPNUT"
 
 
      status = nf_def_var (foutid,'MXDIS', NF_DOUBLE, 2, nid , mxdisid)
      if (status .ne. NF_NOERR) call handle_err(status)
+#if 0
      status = nf_def_var (foutid,'RISEQ', NF_DOUBLE, 2, nid , riseqid)
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'FALLQ', NF_DOUBLE, 2, nid , fallqid)
      if (status .ne. NF_NOERR) call handle_err(status)
-
-write(*,*) "POOPNUTBAR"
-
+#endif
 
      status = nf_def_var (foutid,'MXVRX', NF_DOUBLE, 2, nid , mxvrxid)
      if (status .ne. NF_NOERR) call handle_err(status)
@@ -718,7 +715,6 @@ write(*,*) "POOPNUTBAR"
      status = nf_def_var (foutid,'ANIXY', NF_DOUBLE, 2, nid , anixyid)
      if (status .ne. NF_NOERR) call handle_err(status)
 
-write(*,*) "BARNUTPOOP"
 
      status = nf_def_var (foutid,'HWDTH', NF_DOUBLE, 2, nid , hwdthid)
      if (status .ne. NF_NOERR) call handle_err(status)
@@ -731,8 +727,6 @@ write(*,*) "BARNUTPOOP"
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'COUNT', NF_DOUBLE, 2, nid , countid)
      if (status .ne. NF_NOERR) call handle_err(status)
-
-write(*,*) "POOPNUTBAR BARNUTPOOP"
 
   endif
 
@@ -934,6 +928,7 @@ write(*,*) "POOPNUTBAR BARNUTPOOP"
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing MXDIS data"
 
+#if 0
      print*,"writing RISEQ  data",MINVAL(riseq_target),MAXVAL(riseq_target)
      status = nf_put_var_double (foutid, riseqid, riseq_target)
      if (status .ne. NF_NOERR) call handle_err(status)
@@ -943,6 +938,7 @@ write(*,*) "POOPNUTBAR BARNUTPOOP"
      status = nf_put_var_double (foutid, fallqid, fallq_target)
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing FALLQ data"
+#endif
 
      print*,"writing MXVRX  data",MINVAL(mxvrx_target),MAXVAL(mxvrx_target)
      status = nf_put_var_double (foutid, mxvrxid, mxvrx_target)
@@ -1319,10 +1315,12 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'SGH_UF', NF_DOUBLE, 2, rdgqdim(1:2) , sghufid)
      if (status .ne. NF_NOERR) call handle_err(status)
+#if 0
      status = nf_def_var (foutid,'RISEQ', NF_DOUBLE, 3, rdgqdim , riseqid)
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'FALLQ', NF_DOUBLE, 3, rdgqdim , fallqid)
      if (status .ne. NF_NOERR) call handle_err(status)     
+#endif
      status = nf_def_var (foutid,'MXVRX', NF_DOUBLE, 3, rdgqdim , mxvrxid)
      if (status .ne. NF_NOERR) call handle_err(status)
      status = nf_def_var (foutid,'MXVRY', NF_DOUBLE, 3, rdgqdim , mxvryid)
@@ -1581,6 +1579,7 @@ end if
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing SGH_UF data"
 
+#if 0
      print*,"writing RISEQ  data",MINVAL(riseq_target),MAXVAL(riseq_target)
      status = nf_put_var_double (foutid, riseqid, riseq_target)
      if (status .ne. NF_NOERR) call handle_err(status)
@@ -1590,6 +1589,7 @@ end if
      status = nf_put_var_double (foutid, fallqid, fallq_target)
      if (status .ne. NF_NOERR) call handle_err(status)
      print*,"done writing FALLQ data"
+#endif
 
      print*,"writing MXVRX  data",MINVAL(mxvrx_target),MAXVAL(mxvrx_target)
      status = nf_put_var_double (foutid, mxvrxid, mxvrx_target)

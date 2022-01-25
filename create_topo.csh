@@ -9,6 +9,8 @@ set n = 1
   echo "Fi    = argv[3]"
   echo "Nsw   = argv[4]"
   echo "case  = argv[5]"
+  echo "     "
+  echo "possible ogrid values: fv_0.9x1.25, ne30pg3 ..."
   exit
 endif
 
