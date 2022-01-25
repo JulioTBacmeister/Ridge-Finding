@@ -425,7 +425,7 @@ write(31) lon1
 write(31) lat0
 write(31) lat1
 
-write(31) uniqid
+write(31) uqrid
 write(31) riseq
 write(31) fallq
 write(31) clngth
@@ -1081,6 +1081,9 @@ end subroutine ANISO_ANA
     allocate (mxvry_target(ntarget,nsubr),stat=alloc_error )
     if( alloc_error /= 0 ) then; print*,'Program could not allocate space for mxvry_target'; stop; endif
     mxvry_target = 0.
+    allocate (bsvar_target(ntarget,nsubr),stat=alloc_error )
+    if( alloc_error /= 0 ) then; print*,'Program could not allocate space for bsvar_target'; stop; endif
+    bsvar_target = 0.
     allocate (hwdth_target(ntarget,nsubr),stat=alloc_error )
     if( alloc_error /= 0 ) then; print*,'Program could not allocate space for hwdth_target'; stop; endif
     hwdth_target = 0.
@@ -1090,8 +1093,6 @@ end subroutine ANISO_ANA
     allocate (cwght_target(ntarget,nsubr),stat=alloc_error )
     if( alloc_error /= 0 ) then; print*,'Program could not allocate space for cwght_target'; stop; endif
     cwght_target = 0.
- 
-
     allocate (count_target(ntarget,nsubr),stat=alloc_error )
     if( alloc_error /= 0 ) then; print*,'Program could not allocate space for count_target'; stop; endif
     count_target = 0.
@@ -1101,9 +1102,6 @@ end subroutine ANISO_ANA
     allocate (fallq_target(ntarget,nsubr),stat=alloc_error )
     if( alloc_error /= 0 ) then; print*,'Program could not allocate space for fallq_target'; stop; endif
     fallq_target = 0.
-    allocate (bsvar_target(ntarget,nsubr),stat=alloc_error )
-    if( alloc_error /= 0 ) then; print*,'Program could not allocate space for bsvar_target'; stop; endif
-    bsvar_target = 0.
 
 !++ 12/../21
     allocate (isowd_target(ntarget,nsubr),stat=alloc_error )
@@ -1142,72 +1140,50 @@ end subroutine ANISO_ANA
     endif
 
         write(*,*) " about to call paintridge2cube "
+     tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     mxdisC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( anglx ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     anglxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( aniso ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     anisoC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( mxvrx ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     mxvrxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( mxvry ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     mxvryC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( bsvar ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     bsvarC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( hwdth ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     hwdthC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( clngth ,  ncube,nhalo,nsb,nsw,lzerovalley, crest_length=.true. )
+     clngtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( clngth ,  ncube,nhalo,nsb,nsw,lzerovalley, crest_weight=.true. )
+     cwghtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( fallq ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     fallqC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+     tmpx6 = paintridge2cube ( riseq ,  ncube,nhalo,nsb,nsw,lzerovalley )
+     riseqC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
-     ! "Paint" basic ridge quanitities back onto 3km cubed-sphere
-     ! using default "skeleton" approach, i.e., onto notional 
-     ! ridge lines 
-     !---------------------------------------------------------------
-     write(*,*) " painting UNIQID "
+     tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, block_fill=.true.   )
+     blockC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+
+!-----------------
+     tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley, profile_fill=.true.   )
+     profiC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+
+
+
+!----------------
      tmpx6 = paintridge2cube ( uniqid ,  ncube,nhalo,nsb,nsw,lzerovalley )
      uniqidC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
 
-     write(*,*) " painting MXDIS "
-     tmpx6 = paintridge2cube ( mxdis ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     mxdisC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-     write(*,*) " painting HWDTH "
-     tmpx6 = paintridge2cube ( hwdth ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     hwdthC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-     write(*,*) " painting CLNGT "
-     tmpx6 = paintridge2cube ( clngth ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     clngtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-     write(*,*) " painting ANGLX "
-     tmpx6 = paintridge2cube ( anglx ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     anglxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-     write(*,*) " painting ANISO "
-     tmpx6 = paintridge2cube ( aniso ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     anisoC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-     write(*,*) " painting MXVRX "
-     tmpx6 = paintridge2cube ( mxvrx ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     mxvrxC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-     write(*,*) " painting MXVRY "
-     tmpx6 = paintridge2cube ( mxvry ,  ncube,nhalo,nsb,nsw,lzerovalley )
-     mxvryC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-        ! The 'crest_weight' option simply forces paintridge2cube to paint 
-        ! a value of 1 along the ridge.
-     write(*,*) " painting CWGHT "
-     tmpx6 = paintridge2cube ( clngth ,  ncube,nhalo,nsb,nsw,lzerovalley, crest_weight=.true. )
-     cwghtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-     bumpsC = 0.
-
-     write(*,*) " painting ISOHT "
+     tmpx6 = paintridge2cube ( isoht ,  ncube,nhalo,nsb,nsw,lzerovalley, bump_fill=.true. )
+     bumpsC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
      tmpx6 = paintridge2cube ( isoht ,  ncube,nhalo,nsb,nsw,lzerovalley )
      isohtC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-     write(*,*) " painting ISOWD "
      tmpx6 = paintridge2cube ( isowd ,  ncube,nhalo,nsb,nsw,lzerovalley )
      isowdC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
+!--
 
-     !----------------------------------------------
-     ! New approach to add volume ...
-     !----------------------------------------------
-     write(*,*) " fleshing out BLOCK "
-     tmpx6  = fleshout_block ( ncube,nhalo,nsb,nsw,mxdisC,hwdthC,anglxC )
-     blockC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-
-     write(*,*) " fleshing out PROFI "
-     tmpx6  = fleshout_profi ( ncube,nhalo,nsb,nsw,mxdisC,anglxC,uniqidC )
-     profiC = reshape( tmpx6(1:ncube, 1:ncube, 1:6 ) , (/ncube*ncube*6/) )
-                         
-
-     !!call relist( uniqidC, mxdisC, 
 
     i_last = -9999
 
@@ -1253,7 +1229,10 @@ end subroutine ANISO_ANA
       hwdth_target( i , isubr ) = hwdth_target( i , isubr ) + wt*hwdthC(ii) *cwghtC(ii)
       mxvrx_target( i , isubr ) = mxvrx_target( i , isubr ) + wt*mxvrxC(ii) *cwghtC(ii)
       mxvry_target( i , isubr ) = mxvry_target( i , isubr ) + wt*mxvryC(ii) *cwghtC(ii)
+      bsvar_target( i , isubr ) = bsvar_target( i , isubr ) + wt*bsvarC(ii) *cwghtC(ii)
       mxdis_target( i , isubr ) = mxdis_target( i , isubr ) + wt*mxdisC(ii) *cwghtC(ii)
+      fallq_target( i , isubr ) = fallq_target( i , isubr ) + wt*fallqC(ii) *cwghtC(ii)
+      riseq_target( i , isubr ) = riseq_target( i , isubr ) + wt*riseqC(ii) *cwghtC(ii)
       aniso_target( i , isubr ) = aniso_target( i , isubr ) + wt*anisoC(ii) *cwghtC(ii)
       anglx_target( i , isubr ) = anglx_target( i , isubr ) + wt*anglxC(ii) *cwghtC(ii)
       !! clngt_target( i , isubr ) = clngt_target( i , isubr ) + wt*clngtC(ii) *cwghtC(ii)
@@ -1273,6 +1252,8 @@ end subroutine ANISO_ANA
     clngt_target = clngt_target * grid_length_scale
     isowd_target = isowd_target * grid_length_scale
 
+    ! Make fallq positive
+    fallq_target = -1.*fallq_target
 
 
      !==========================================
@@ -1282,21 +1263,27 @@ end subroutine ANISO_ANA
      where( cwght_target > 1.e-15 )
         !clngt_target = clngt_target / cwght_target
         mxdis_target = mxdis_target / cwght_target
+        fallq_target = fallq_target / cwght_target
+        riseq_target = riseq_target / cwght_target
         aniso_target = aniso_target / cwght_target
         anglx_target = anglx_target / cwght_target
         hwdth_target = hwdth_target / cwght_target
         mxvrx_target = mxvrx_target / cwght_target
         mxvry_target = mxvry_target / cwght_target
+        bsvar_target = bsvar_target / cwght_target
         isoht_target = isoht_target / cwght_target
         isowd_target = isowd_target / cwght_target
      elsewhere      
         clngt_target = 0.
         mxdis_target = 0.
+        riseq_target = 0.
+        fallq_target = 0.
         aniso_target = 0.
         anglx_target = -9000.
         hwdth_target = 0.
         mxvrx_target = 0.
         mxvry_target = 0.
+        bsvar_target = 0.
         isoht_target = 0. 
         isowd_target = 0. 
      end where
@@ -1586,6 +1573,10 @@ close(911)
 
 end subroutine importancesort
 
+
+
+
+
 !======================================
 
 function mapridge2cube ( a, norx, nory,xs,ys,xv,yv,ncube,nhalo,nsb ) result( axc )
@@ -1615,142 +1606,22 @@ function mapridge2cube ( a, norx, nory,xs,ys,xv,yv,ncube,nhalo,nsb ) result( axc
      end do
 
 end function mapridge2cube
-!======================================
-!++1/22/22 Added 
-function fleshout_block ( ncube,nhalo,nsb,nsw,mxdisC,hwdthC,anglxC ) result( axc )
-   
-       integer, intent(in) :: ncube,nhalo,nsb,nsw
-       real(KIND=dbl_kind), intent(in), dimension( ncube, ncube, 6 ) :: mxdisC
-       real(KIND=dbl_kind), intent(in), dimension( ncube, ncube, 6 ) :: hwdthC
-       real(KIND=dbl_kind), intent(in), dimension( ncube, ncube, 6 ) :: anglxC
-
-       real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: axc
-       real, dimension(-nsw:nsw,-nsw:nsw) :: suba,sub1,sub11
-       real, dimension(-nsw:nsw,-nsw:nsw) :: subr,subq,subdis
-       real, dimension(-nsw:nsw)          :: xq,yq
-       real :: rotangl,dsq,ssq
-       integer :: i,j,x0,x1,y0,y1,ip,ns0,ns1,ii,jj,norx,nory,nql,ncl,nhw,ipk,npeaks,jw,iw
-!---------------------------------------------------
-
-
-write(*,*) " in fleshout_block "
-!===============================
-! Initialize cube sphere "canvas"
-! for "painting"
-!================================
-  axc = 0.
-
-  do ip=1,6
-  do j=1,ncube
-  do i=1,ncube
-     if(mxdisC(i,j,ip)>=1.0) then
-       suba(:,:) = 0.
-       subr(:,:) = 0.
-       nhw  = MIN( INT(hwdthC(i,j,ip)/2) , nsw/2 )
-       do jw=-nhw,nhw
-          suba( jw , -1:1 ) = 1.-1.0*abs(jw)/nhw
-       end do
-       rotangl = - anglxC(i,j,ip) 
-       subr = rotby3( suba , 2*nsw+1, rotangl )
-       subdis = subr  * mxdisC(i,j,ip)
-       where(abs(subdis)>=8000.)
-           subdis = 0.
-       end where
-
-                ! Reconstruct 
-                !------------------------
-                do jj = -NSW/2,NSW/2
-                do ii = -NSW/2,NSW/2
-                    x0 = i ! INT( xspk(ipk) ) + 1
-                    y0 = j ! INT( yspk(ipk) ) + 1
-                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
-                       if ( subdis(ii,jj) >=  AXC( x0+ii, y0+jj, ip ) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
-                    end if
-                end do
-                end do
-     end if
-  end do
-  end do
-  write(*,*)" finished panel=",ip
-  end do
-
-end function fleshout_block
-!======================================
-!++1/25/22 Added 
-function fleshout_profi ( ncube,nhalo,nsb,nsw,mxdisC,anglxC,uniqidC ) & 
-                          result( axc )
-   
-       integer, intent(in) :: ncube,nhalo,nsb,nsw
-       real(KIND=dbl_kind), intent(in), dimension( ncube, ncube, 6 ) :: mxdisC
-       !!real(KIND=dbl_kind), intent(in), dimension( ncube, ncube, 6 ) :: hwdthC
-       real(KIND=dbl_kind), intent(in), dimension( ncube, ncube, 6 ) :: anglxC
-       real(KIND=dbl_kind), intent(in), dimension( ncube, ncube, 6 ) :: uniqidC
-
-       real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: axc
-       real, dimension(-nsw:nsw,-nsw:nsw) :: suba,sub1,sub11
-       real, dimension(-nsw:nsw,-nsw:nsw) :: subr,subq,subdis
-       real, dimension(-nsw:nsw)          :: xq,yq
-       real :: rotangl,dsq,ssq
-       integer :: i,j,x0,x1,y0,y1,ip,ns0,ns1,ii,jj,norx,nory,nql,ncl,nhw,ipk,npeaks,jw,iw,idx1
-!---------------------------------------------------
-
-
-write(*,*) " in fleshout_profi "
-!===============================
-! Initialize cube sphere "canvas"
-! for "painting"
-!================================
-  axc  =  0.
-
-  do ip=1,6
-  do j=1,ncube
-  do i=1,ncube
-     if(mxdisC(i,j,ip)>=1.0) then
-       !idx1 = ip*ncube*ncube + j*ncube + i
-       ipk  = INT( uniqidC ( i,j,ip ) )
-       suba(:,:) = 0.
-       subr(:,:) = 0.
-       do jw=-1,1
-          suba(: , jw  ) = rdg_profiles_x(:,ipk)
-       end do
-       rotangl = - anglxC(i,j,ip) 
-       subr = rotby3( suba , 2*nsw+1, rotangl )
-       subdis = subr
-       where(abs(subdis)>=8000.)
-           subdis = 0.
-       end where
-                ! Reconstruct 
-                !------------------------
-                do jj = -NSW/2,NSW/2
-                do ii = -NSW/2,NSW/2
-                    x0 = i ! INT( xspk(ipk) ) + 1
-                    y0 = j ! INT( yspk(ipk) ) + 1
-                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
-                       if ( (subdis(ii,jj) <= 0.).and. (AXC( x0+ii, y0+jj, ip )<=0. ) ) then
-                          if ( subdis(ii,jj) <=  AXC( x0+ii, y0+jj, ip ) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
-                       else
-                          if ( subdis(ii,jj) >=  AXC( x0+ii, y0+jj, ip ) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
-                       end if
-                    end if
-                end do
-                end do
-     end if
-  end do
-  end do
-  write(*,*)" finished panel=",ip
-  end do
-
-end function fleshout_profi
 
 !======================================
-function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, crest_weight) & 
-                           result( axc )
+!++11/3/21 Added profile_fill
+function paintridge2cube ( axr, ncube,nhalo,nsb,nsw, lzerovalley, crest_length, crest_weight, & 
+                           block_fill, profile_fill, bump_fill, dott_fill ) result( axc )
    
        integer, intent(in) :: ncube,nhalo,nsb,nsw
        real, intent(in), dimension( size(xs) ) :: axr
        logical, intent(in) :: lzerovalley
        logical, optional, intent(in) :: crest_length
        logical, optional, intent(in) :: crest_weight
+       logical, optional, intent(in) :: block_fill
+       logical, optional, intent(in) :: profile_fill
+       logical, optional, intent(in) :: bump_fill
+       logical, optional, intent(in) :: dott_fill
+       !!real, optional, intent(out):: brush( -nsw:nsw, -nsw:nsw )
 
        real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: axc
        real(KIND=dbl_kind), dimension(1-nhalo:ncube+nhalo,1-nhalo:ncube+nhalo ,6) :: qc
@@ -1775,6 +1646,26 @@ write(*,*) " in paintridge "
     else
        lcrestwt = .false.
     endif
+    if(present(block_fill)) then
+      lblockfl = block_fill
+    else
+       lblockfl = .false.
+    endif
+    if(present(profile_fill)) then
+      lprofifl = profile_fill
+    else
+       lprofifl = .false.
+    endif
+    if(present(bump_fill)) then
+      lbumpfl = bump_fill
+    else
+       lbumpfl = .false.
+    endif
+    if(present(dott_fill)) then
+      ldottfl = dott_fill
+    else
+       ldottfl = .false.
+    endif
 
 
     DO i=-nsw,nsw
@@ -1788,6 +1679,13 @@ write(*,*) " in paintridge "
 
      npeaks=size(mxdis)
 
+!==========================================================
+! This looks pointless since suba is always zeroed below.
+!==========================================================
+  if ( .not.(Lcrestln) ) then
+   suba(:,:)=0.
+   suba( -nsw/4-1:nsw/4+1 , -nsw/2-1:nsw/2+1 ) = 1.
+  endif  
 
 !===============================================================
 ! Set-up 2*NSW+1 sub1 square "brush" for future reconcilaition/annealing.
@@ -1796,7 +1694,8 @@ write(*,*) " in paintridge "
 !===============================================================
   sub1(:,:)=0.
   nql = INT( nsw/1.0 )
-
+  !nql = INT( nsw/8.0 )
+  !nql = 2
     DO j=-nsw,nsw
     DO i=-nsw,nsw
        ssq= SQRT(xq(i)**2+yq(j)**2)
@@ -1805,25 +1704,34 @@ write(*,*) " in paintridge "
     END DO
   
     sub11(:,:)=0.
-    DO j=-nsw/2,nsw/2
-    DO i=-nsw/2,nsw/2
+    if (.NOT.lprofifl) then
+       DO j=-nsw/2,nsw/2
+       DO i=-nsw/2,nsw/2
           sub11(i,j)=1.0
-    END DO
-    END DO
+       END DO
+       END DO
+    else
+       DO j=-nsw/2,nsw/2
+       DO i=-nsw  ,nsw
+          sub11(i,j)=1.0
+       END DO
+       END DO
+    end if
 
 #ifdef ROTATEBRUSH
     write(*,*) "Using nsw/2 x nsw/2 ROTATED brush in paintridge"
+    !write(*,*) "Using nsw/2 x nsw ROTATED brush in paintridge"
 #endif
-!=======================================
-! Initialize cube sphere "canvas" arrays 
+!===============================
+! Initialize cube sphere arrays 
 ! for "painting"
-!=======================================
+!================================
   axc = 0.
   qc  = 0.
 
 
 !==================================================================
-! Notes following 11/3/2021
+! Notes for 11/3/2021
 !  In the following we create arrays suba(-nsw:nsw, -nsw:nsw)  
 !  with normalized magnitudes 0.0-1.0. Here X (dim1) is the 
 !  cross-ridge direction while Y (dim2) is the long-crest 
@@ -1848,30 +1756,78 @@ write(*,*) " in paintridge "
 !=======================================================================
   do ipk=1,npeaks
         if(mxdis(ipk)>=1.0) then
- 
-            if(Lcrestwt) then
+!++11/3/21 -nsw/2:nsw/2 ==> 
+            if(Lprofifl) then
+               suba(:,:) = 0.
+               ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )   
+               do jw=-ncl,ncl
+                  !!suba(-nsw/2: , jw  ) = rdg_profiles(:,ipk)
+                  suba(: , jw  ) = rdg_profiles_x(:,ipk)
+               end do
+               rotangl = - anglx(ipk) 
+               subr = rotby3( suba , 2*nsw+1, rotangl )
+               subdis = subr 
+             end if
+             if(Lblockfl) then
+               suba(:,:) = 0.
+               ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
+               nhw  = MIN( INT(hwdth(ipk)/2) , nsw/2 )
+               !suba( -nhw:nhw , -ncl:ncl ) = 1.        
+               do jw=-nhw,nhw
+                  suba( jw , -ncl:ncl ) = 1.-1.0*abs(jw)/nhw
+               end do
+               rotangl = - anglx(ipk) 
+               subr = rotby3( suba , 2*nsw+1, rotangl )
+               subdis = subr  * axr(ipk)
+             end if
+             if(Lbumpfl) then
+               suba(:,:) = 0.
+               ncl  = MIN( INT(isowd(ipk)/2) , nsw/2 )
+               nhw  = MIN( INT(isowd(ipk)/2) , nsw/2 )
+               !suba( -nhw:nhw , -ncl:ncl ) = 1.        
+               do jw=-nhw,nhw
+               do iw=-nhw,nhw
+                  suba( iw , jw ) = max( 0., 1.0 - sqrt( 1.*iw**2 + 1.*jw**2)/nhw )
+               end do
+               end do
+               !rotangl = - anglx(ipk) 
+               !subr = suba !  rotby3( suba , 2*nsw+1, rotangl )
+               subdis = suba  * axr(ipk)
+             end if
+             if(Ldottfl) then
+               suba(:,:) = 0.
+               do jw=0,0
+               do iw=0,0
+                  suba( iw , jw ) = 1.0 
+               end do
+               end do
+               subdis = suba  * axr(ipk)
+             end if
+             if(Lcrestwt) then
                suba(:,:) = 0.
                ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
                suba( 0 , -ncl:ncl ) = 1.        
                rotangl = - anglx(ipk) 
                subr = rotby3( suba , 2*nsw+1, rotangl )
                subdis = subr 
-             else if(Lcrestln) then
+             end if
+             if(Lcrestln) then
                suba(:,:) = 0.
                ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
                suba( 0 , -ncl:ncl ) = 1.        
                rotangl = - anglx(ipk) 
                subr = rotby3( suba , 2*nsw+1, rotangl )
                subdis = subr * axr(ipk)
-             else            
+             end if
+             if( (.not.(Lcrestln)).and.(.not.(Lcrestwt)).and.(.not.(Lblockfl)) & 
+            .and.(.not.(Lprofifl)).and.(.not.(Lbumpfl)) .and.(.not.(Ldottfl) ) ) then
                suba(:,:) = 0.
                ncl  = MIN( INT(clngth(ipk)/2) , nsw/2 )
                suba( 0 , -ncl:ncl ) = 1.        
                rotangl = - anglx(ipk) 
                subr = rotby3( suba , 2*nsw+1, rotangl )
                subdis =  subr * axr(ipk)
-             end if
-
+             endif
 
 #ifdef ROTATEBRUSH
              ! rotated "brush"
@@ -1888,21 +1844,55 @@ write(*,*) " in paintridge "
              !======================================================
              dsq    = 1.0 - SQRT( (xs(ipk)-xspk(ipk))**2 + (ys(ipk)-yspk(ipk))**2 )/nsw
              subq   = sub1 * dsq
-             ! original reconciliation
-             !------------------------
-             do jj = -NSW/2,NSW/2
-             do ii = -NSW/2,NSW/2
-                ip = peaks(ipk)%ip
-                x0 = INT( xspk(ipk) ) + 1
-                y0 = INT( yspk(ipk) ) + 1
-                if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
+
+             where( abs(subdis)>8000. )
+                  subdis = 0.
+             end where
+
+             if(.NOT.lprofifl) then
+                ! original reconciliation
+                !------------------------
+                do jj = -NSW/2,NSW/2
+                do ii = -NSW/2,NSW/2
+                !do jj = -NSW,NSW
+                !do ii = -NSW,NSW
+                    ip = peaks(ipk)%ip
+                    x0 = INT( xspk(ipk) ) + 1
+                    y0 = INT( yspk(ipk) ) + 1
+                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
+                       !if ( AXC( x0+ii, y0+jj, ip ) < subdis(ii,jj) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
                        if ( QC( x0+ii, y0+jj, ip ) <= subq(ii,jj) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
                        if ( QC( x0+ii, y0+jj, ip ) <= subq(ii,jj) )  QC( x0+ii, y0+jj, ip )  = subq(ii,jj)
-                endif
-             end do
-             end do
-         end if
-      end do
+                    endif
+                end do
+                end do
+              else
+                !------------------------------------
+                ! special reconciliation
+                !------------------------
+                do jj = -NSW  ,NSW
+                do ii = -NSW  ,NSW 
+                !do jj = -NSW,NSW
+                !do ii = -NSW,NSW
+                    ip = peaks(ipk)%ip
+                    x0 = INT( xspk(ipk) ) + 1
+                    y0 = INT( yspk(ipk) ) + 1
+                    if ( (x0+ii>=1-nhalo).and.(x0+ii<=ncube+nhalo).AND.(Y0+ii>=1-nhalo).and.(Y0+ii<=ncube+nhalo) ) then
+                      if( (abs(ii) <= NSW/2).AND.(abs(ii) <= NSW/2) ) then
+                         if ( QC( x0+ii, y0+jj, ip ) <= subq(ii,jj) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
+                         if ( QC( x0+ii, y0+jj, ip ) <= subq(ii,jj) )  QC( x0+ii, y0+jj, ip )  = subq(ii,jj)
+                      else
+                         if ( abs(subdis(ii,jj)) >= abs( AXC( x0+ii, y0+jj, ip )) )  AXC( x0+ii, y0+jj, ip ) = subdis(ii,jj)
+                      end if
+                    endif
+                end do
+                end do
+                !------------------------------------
+             end if
+
+       end if
+ 
+     end do
 
      write(*,*) " finished paintridge2cube "
      

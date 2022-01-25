@@ -37,8 +37,6 @@ xv=fltarr(nch)&yv=fltarr(nch)
   angll=fltarr(npks) & rwpks=fltarr(npks) & rwvls=fltarr(npks)
   isoht=fltarr(npks) & isowd=fltarr(npks) & isobs=fltarr(npks) 
 
-  uqrid=fltarr(npks)
-
   xspk= fltarr(npks) & yspk= fltarr(npks)
 
  rdg_profiles = fltarr( nsw+1,npks )
@@ -76,7 +74,7 @@ readu, 1 ;, lon1
 readu, 1 ;, lat0
 readu, 1 ;, lat1
 
-readu, 1, uqrid
+readu, 1 ;, uqrid
 readu, 1 ;, riseq
 readu, 1 ;, fallq
 readu, 1, clngt
@@ -151,7 +149,7 @@ norw=where( xs gt 1550 and xs lt 1650 and ys gt 450 and ys lt 550 and mxdis gt 5
 
 if keyword_set(stop) then STOP
 
-xlist = { xs:xs, ys:ys, xspk:xspk, yspk:yspk, mxdis:mxdis, hwdth:hwdth, clngt:clngt, anglx:anglx, aniso:aniso, uniqid:uqrid, rdg_profiles:rdg_profiles }
+xlist = { xs:xs, ys:ys, xspk:xspk, yspk:yspk, mxdis:mxdis, hwdth:hwdth, clngt:clngt, anglx:anglx, aniso:aniso, rdg_profiles:rdg_profiles }
 
 
 

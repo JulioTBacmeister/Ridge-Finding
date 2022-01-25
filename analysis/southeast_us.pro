@@ -27,3 +27,19 @@ STOP
 return
 end
 
+pro towns
+
+circlesym
+oplot,[-95.68+360.],[39.05],ps=8,syms=2 ; Topeka
+oplot,[-97.52+360.],[35.47],ps=8,syms=2 ; Oklahoma City
+
+circlesym,nv=3
+oplot,[-97.49+360.],[36.61],ps=8,syms=2 ; Lamont, Oklahoma ARM-SGP
+
+
+circlesym,nv=4
+;oplot,[-108.12+360.],[39.44],ps=8,syms=2 ; Mt. Callahan
+
+return
+
+end
