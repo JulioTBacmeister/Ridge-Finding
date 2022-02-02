@@ -24,7 +24,7 @@ if keyword_set(quick) then begin
 endif
 
 
-fnames,xc=xcase,co=co,fi=fi,ns=nsw,og=ogrid,fcam=fcam,grem=grem,rema=rema,topo=topo,tg=tg,list=list
+fnames,xc=xcase,co=co,fi=fi,ns=nsw,og=ogrid,fcam=fcam,grem=grem,rema=rema,topo=topo,tg=tg,list=list,nc=nc
 
 rdgrid,grem=grem,itrgt=itrgt
 rncvar,f=tg,get='lon',dat=lont

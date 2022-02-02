@@ -3,9 +3,9 @@ MODULE shared_vars
 
   real(r8), allocatable, dimension(:,:):: target_corner_lon, target_corner_lat
   real(r8), allocatable, dimension(:)  :: target_center_lon, target_center_lat, target_area
-  real(r8),  allocatable, dimension(:) :: landm_coslat, landfrac, terr, var30
+  real(r8),  allocatable, dimension(:) :: landm_coslat, terr, var30
 
-  real(r8), allocatable, dimension(:) :: landfrac_target, terr_target, sgh30_target, sgh_target
+  real(r8), allocatable, dimension(:) :: terr_target, sgh30_target, sgh_target
   real(r8), allocatable, dimension(:) :: landm_coslat_target, area_target
 
   real(r8), allocatable, dimension(:) :: terr_uf_target, sgh_uf_target
@@ -113,14 +113,9 @@ subroutine allocate_target_vars(ntarget)
     print*,'Program could not allocate space for terr_target'
     stop
   end if
-  allocate (landfrac_target(ntarget),stat=alloc_error )
-  if( alloc_error /= 0 ) then
-    print*,'Program could not allocate space for landfrac_target'
-    stop
-  end if
   allocate (landm_coslat_target(ntarget),stat=alloc_error )
   if( alloc_error /= 0 ) then
-    print*,'Program could not allocate space for landfrac_target'
+    print*,'Program could not allocate space for landm_coslat_target'
     stop
   end if
   allocate (sgh30_target(ntarget),stat=alloc_error )
@@ -222,21 +217,6 @@ subroutine read_intermediate_cubed_sphere_grid(intermediate_cubed_sphere_fname,n
   IF (status .NE. NF_NOERR) CALL HANDLE_ERR(status)
   WRITE(*,*) "min/max of landm_coslat",MINVAL(landm_coslat),MAXVAL(landm_coslat)
 
-  !
-  ! read LANDFRAC
-  !
-  allocate ( landfrac(n),stat=alloc_error )
-  if( alloc_error /= 0 ) then
-    print*,'Program could not allocate space for landfrac'
-    stop
-  end if
-  
-  status = NF_INQ_VARID(ncid, 'LANDFRAC', landid)
-  IF (status .NE. NF_NOERR) CALL HANDLE_ERR(status)
-  
-  status = NF_GET_VAR_DOUBLE(ncid, landid,landfrac)
-  IF (status .NE. NF_NOERR) CALL HANDLE_ERR(status)
-  WRITE(*,*) "min/max of landfrac",MINVAL(landfrac),MAXVAL(landfrac)
 
   !
   ! read terr - this is the elevation data (meters) on cubed sphere grid
@@ -274,6 +254,8 @@ subroutine read_intermediate_cubed_sphere_grid(intermediate_cubed_sphere_fname,n
   status = nf_close (ncid)
   if (status .ne. NF_NOERR) call handle_err(status)
   
+
+
   WRITE(*,*) 'done reading in data from netCDF file'
 
 end subroutine read_intermediate_cubed_sphere_grid

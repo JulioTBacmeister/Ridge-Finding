@@ -98,7 +98,7 @@ program convterr
   !
   logical :: lexternal_smooth_terr = .TRUE. ! lexternal_smooth_terr = .FALSE. is NOT supported currently
   !
-  ! set PHIS=0.0 if LANDFRAC<0.01
+  ! set PHIS=0.0 over ocean - phase out
   !
   logical :: lzero_out_ocean_point_phis = .FALSE.
   !
@@ -353,13 +353,6 @@ program convterr
   write(*,*) "MIN/MAX area_target",MINVAL(area_target),MAXVAl(area_target)
   write(*,*) "MIN/MAX target_area",MINVAL(target_area),MAXVAl(target_area)
 
-  write(*,*) "Remapping landfrac"
-  write(*,*) "MIN/MAX before remap:", MINVAL(landfrac), MAXVAL(landfrac)
-  landfrac_target = remap_field(landfrac,area_target,weights_eul_index_all(1:jall,:),weights_lgr_index_all(1:jall),&       
-       weights_all(1:jall,:),ncube,jall,nreconstruction,ntarget)
-  write(*,*) "MIN/MAX after remap:", MINVAL(landfrac_target), MAXVAL(landfrac_target)
-
-
   write(*,*) "Remapping terrain"
   terr_target = remap_field(terr,area_target,weights_eul_index_all(1:jall,:),weights_lgr_index_all(1:jall),&
        weights_all(1:jall,:),ncube,jall,nreconstruction,ntarget)
@@ -451,20 +444,14 @@ program convterr
       DO jx=1,ncube
         ii = (jp-1)*ncube*ncube+(jy-1)*ncube+jx
         vol_source = vol_source+terr(ii)*dA(jx,jy)
-        if (landfrac(ii)>0.0D0) then
-           mea_source   = mea_source  + terr(ii)*dA(jx,jy)
-           area_source  = area_source +          dA(jx,jy)
-        else
-        end if
       END DO
     END DO
   END DO
   WRITE(*,*) "volume of input cubed-sphere terrain           :",vol_source
   WRITE(*,*) "average elevation of input cubed-sphere terrain:",vol_source/(4.0D0*pi)
-  WRITE(*,*) "average elevation of input cubed-sphere terrain over land:",vol_source/area_source
+  !WRITE(*,*) "average elevation of input cubed-sphere terrain over land:",vol_source/area_source
   
   DEALLOCATE(dA)
-  deallocate(landfrac)
   !
   ! compute variance with respect to cubed-sphere data
   !
@@ -512,15 +499,9 @@ program convterr
     wt = weights_all(counti,1)
     
 
-    if( .not.(lsmooth_on_cubed_sphere) ) then
-      if (lzero_out_ocean_point_phis.AND.landfrac_target(i).lt.0.01_r8) then
-        terr_target(i) = 0.0_r8   !5*terr_target(i)
-      end if
-      sgh_target(i) = sgh_target(i)+wt*((terr_target(i)-terr(ii))**2)/area_target(i)
-    else
       sgh_target  (i) = sgh_target  (i) + wt*(terr_dev(ix,iy,ip))**2/area_target(i)
       terr_target (i) = terr_target (i) + wt*(terr_sm(ix,iy,ip))/area_target(i) 
-    endif
+
 
     sgh_uf_target(i) = sgh_uf_target(i)+wt*((terr_uf_target(i)-terr(ii))**2)/area_target(i)
 
@@ -553,7 +534,6 @@ program convterr
   ! zero out small values
   !
   DO i=1,ntarget
-    IF (landfrac_target(i)<.001_r8)  landfrac_target(i) = 0.0D0
     IF (sgh_target(i)     <    0.5)  sgh_target(i)      = 0.0D0
     IF (sgh30_target(i)<       0.5D0) sgh30_target(i)    = 0.0D0
   END DO
@@ -562,7 +542,6 @@ program convterr
 
   WRITE(*,*) "min/max of terr source                   : ",MINVAL(terr),MAXVAL(terr)
   WRITE(*,*) "min/max of terr_target                   : ",MINVAL(terr_target    ),MAXVAL(terr_target    )
-  WRITE(*,*) "min/max of landfrac_target               : ",MINVAL(landfrac_target),MAXVAL(landfrac_target)
   WRITE(*,*) "min/max of landm_coslat_target           : ",&
        MINVAL(landm_coslat_target),MAXVAL(landm_coslat_target)
   WRITE(*,*) "min/max of var30_target                  : ",MINVAL(sgh30_target   ),MAXVAL(sgh30_target   )
@@ -573,19 +552,19 @@ program convterr
   
   write(*,*) " Model topo output file ",trim(output_fname)
   IF (ltarget_latlon) THEN
-    CALL wrtncdf_rll(nlon,nlat,lpole,ntarget,terr_target,landfrac_target,sgh_target,sgh30_target,&
+    CALL wrtncdf_rll(nlon,nlat,lpole,ntarget,terr_target,sgh_target,sgh30_target,&
          landm_coslat_target,target_center_lon,target_center_lat,.FALSE.,output_fname,lfind_ridges)
   ELSE
-    CALL wrtncdf_unstructured(ntarget,terr_target,landfrac_target,sgh_target,sgh30_target,&
+    CALL wrtncdf_unstructured(ntarget,terr_target,sgh_target,sgh30_target,&
          landm_coslat_target,target_center_lon,target_center_lat,target_area,output_fname,lfind_ridges)
   END IF
-  DEALLOCATE(terr_target,landfrac_target,sgh30_target,sgh_target,landm_coslat_target)
+  DEALLOCATE(terr_target,sgh30_target,sgh_target,landm_coslat_target)
  
 end program convterr
 !
 !
 !
-subroutine wrtncdf_unstructured(n,terr,landfrac,sgh,sgh30,landm_coslat,lon,lat,area,output_fname,lfind_ridges)
+subroutine wrtncdf_unstructured(n,terr,sgh,sgh30,landm_coslat,lon,lat,area,output_fname,lfind_ridges)
 
   use shr_kind_mod, only: r8 => shr_kind_r8
   use shared_vars, only : terr_uf_target, sgh_uf_target, area_target
@@ -604,7 +583,7 @@ subroutine wrtncdf_unstructured(n,terr,landfrac,sgh,sgh30,landm_coslat,lon,lat,a
   ! Dummy arguments
   !
   integer, intent(in) :: n
-  real(r8),dimension(n)  , intent(in) :: terr, landfrac,sgh,sgh30,lon, lat, landm_coslat,area  
+  real(r8),dimension(n)  , intent(in) :: terr,sgh,sgh30,lon, lat, landm_coslat,area  
   character(len=1024), intent(in) :: output_fname
   logical, intent(in) :: lfind_ridges
   !
@@ -615,7 +594,7 @@ subroutine wrtncdf_unstructured(n,terr,landfrac,sgh,sgh30,landm_coslat,lon,lat,a
   integer            :: lonvid
   integer            :: latvid
   integer            :: terrid, areaid!,nid
-  integer            :: landfracid,sghid,sgh30id,landm_coslatid
+  integer            :: sghid,sgh30id,landm_coslatid
 
   integer             :: mxdisid, ang22id, anixyid, anisoid, mxvrxid, mxvryid, hwdthid, wghtsid, anglxid, gbxarid
   integer             :: sghufid, terrufid, clngtid, cwghtid, countid,riseqid,fallqid, ThisId
@@ -655,10 +634,7 @@ subroutine wrtncdf_unstructured(n,terr,landfrac,sgh,sgh30,landm_coslat,lon,lat,a
   print *,"Create variable for output"
   status = nf_def_var (foutid,'PHIS', NF_DOUBLE, 1, nid(1), terrid)
   if (status .ne. NF_NOERR) call handle_err(status)
-  
-  status = nf_def_var (foutid,'LANDFRAC', NF_DOUBLE, 1, nid(1), landfracid)
-  if (status .ne. NF_NOERR) call handle_err(status)
-  
+    
   status = nf_def_var (foutid,'SGH', NF_DOUBLE, 1, nid(1), sghid)
   if (status .ne. NF_NOERR) call handle_err(status)
   
@@ -760,10 +736,6 @@ subroutine wrtncdf_unstructured(n,terr,landfrac,sgh,sgh30,landm_coslat,lon,lat,a
   status = nf_put_att_text   (foutid, landm_coslatid, 'long_name' , 23, 'smoothed land fraction')
   status = nf_put_att_text   (foutid, landm_coslatid, 'filter'    , 4, 'none')
   
-  status = nf_put_att_double (foutid, landfracid, 'missing_value', nf_double, 1, fillvalue)
-  status = nf_put_att_double (foutid, landfracid, '_FillValue'   , nf_double, 1, fillvalue)
-  status = nf_put_att_text   (foutid, landfracid, 'long_name', 21, 'gridbox land fraction')
-  !        status = nf_put_att_text   (foutid, landfracid, 'filter', 40, 'area averaged from 30-sec USGS raw data')
   
   
   status = nf_put_att_double (foutid, areaid, 'missing_value', nf_double, 1, fillvalue)
@@ -886,10 +858,6 @@ subroutine wrtncdf_unstructured(n,terr,landfrac,sgh,sgh30,landm_coslat,lon,lat,a
   if (status .ne. NF_NOERR) call handle_err(status)
   print*,"done writing terrain data"
   
-  print*,"writing landfrac data",MINVAL(landfrac),MAXVAL(landfrac)
-  status = nf_put_var_double (foutid, landfracid, landfrac)
-  if (status .ne. NF_NOERR) call handle_err(status)
-  print*,"done writing landfrac data"
   
   print*,"writing sgh data",MINVAL(sgh),MAXVAL(sgh)
   status = nf_put_var_double (foutid, sghid, sgh)
@@ -1028,7 +996,7 @@ end subroutine wrtncdf_unstructured
 !
 !**************************************************************     
 !
-subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,landm_coslat_in,lon,lat,&
+subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,sgh_in,sgh30_in,landm_coslat_in,lon,lat,&
      lprepare_fv_smoothing_routine,output_fname,Lfind_ridges)
 
   use ridge_ana, only: nsubr, mxdis_target, mxvrx_target, mxvry_target, ang22_target, &
@@ -1052,7 +1020,7 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   ! lprepare_fv_smoothing_routine is to make a NetCDF file that can be used with the CAM-FV smoothing software
   !
   logical , intent(in) :: lpole,lprepare_fv_smoothing_routine
-  real(r8),dimension(n)  , intent(in) :: terr_in, landfrac_in,sgh_in,sgh30_in,lon, lat, landm_coslat_in
+  real(r8),dimension(n)  , intent(in) :: terr_in,sgh_in,sgh30_in,lon, lat, landm_coslat_in
   !
   ! Local variables
   !
@@ -1061,7 +1029,7 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   integer             :: lonid, lonvid
   integer             :: latid, latvid, nrdgid
   integer             :: terrid
-  integer             :: landfracid,sghid,sgh30id,landm_coslatid
+  integer             :: sghid,sgh30id,landm_coslatid
   integer             :: status    ! return value for error control of netcdf routin
 
   integer             :: mxdisid, ang22id, anixyid, anisoid, mxvrxid, mxvryid, hwdthid, wghtsid, anglxid, gbxarid
@@ -1081,7 +1049,7 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   integer, dimension(3) :: rdgqdim
   integer, dimension(2) :: htopodim,landfdim,sghdim,sgh30dim,landmcoslatdim
   integer, dimension(1) :: londim,latdim
-  real(r8),dimension(n) :: terr, landfrac,sgh,sgh30,landm_coslat
+  real(r8),dimension(n) :: terr,sgh,sgh30,landm_coslat
   integer :: i,j
   
   IF (nlon*nlat.NE.n) THEN
@@ -1106,7 +1074,6 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   terr = terr_in
   sgh=sgh_in
   sgh30 =sgh30_in
-  landfrac = landfrac_in
   landm_coslat = landm_coslat_in
   
   if (lpole) then
@@ -1162,22 +1129,6 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
     end do
     sgh30(n-(nlon+1):n) = ave/DBLE(nlon)
     
-    !
-    ! North pole - landfrac
-    !
-    ave = 0.0
-    do i=1,nlon
-      ave = ave + landfrac_in(i)
-    end do
-    landfrac(1:nlon) = ave/DBLE(nlon)
-    !
-    ! South pole
-    !
-    ave = 0.0
-    do i=n-(nlon+1),n
-      ave = ave + landfrac_in(i)
-    end do
-    landfrac(n-(nlon+1):n) = ave/DBLE(nlon)
     
     !
     ! North pole - landm_coslat
@@ -1236,18 +1187,7 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
     status = nf_def_var (foutid,'PHIS', NF_DOUBLE, 2, htopodim, terrid)
   end if
   if (status .ne. NF_NOERR) call handle_err(status)
-  
-  landfdim(1)=lonid
-  landfdim(2)=latid
-  
-  if (lprepare_fv_smoothing_routine) then
-    status = nf_def_var (foutid,'ftopo', NF_DOUBLE, 2, landfdim, landfracid)
-  else
-    status = nf_def_var (foutid,'LANDFRAC', NF_DOUBLE, 2, landfdim, landfracid)
-  end if
-
-  if (status .ne. NF_NOERR) call handle_err(status)
-  
+    
   sghdim(1)=lonid
   sghdim(2)=latid
   
@@ -1378,9 +1318,6 @@ subroutine wrtncdf_rll(nlon,nlat,lpole,n,terr_in,landfrac_in,sgh_in,sgh30_in,lan
   status = nf_put_att_text   (foutid, landm_coslatid, 'long_name' , 23, 'smoothed land fraction')
   status = nf_put_att_text   (foutid, landm_coslatid, 'filter'    , 4, 'none')
   
-  status = nf_put_att_double (foutid, landfracid, 'missing_value', nf_double, 1, fillvalue)
-  status = nf_put_att_double (foutid, landfracid, '_FillValue'   , nf_double, 1, fillvalue)
-  status = nf_put_att_text   (foutid, landfracid, 'long_name', 21, 'gridbox land fraction')
   
   
   status = nf_put_att_text (foutid,latvid,'long_name', 8, 'latitude')
@@ -1495,10 +1432,6 @@ end if
   if (status .ne. NF_NOERR) call handle_err(status)
   print*,"done writing terrain data"
   
-  print*,"writing landfrac data",MINVAL(landfrac),MAXVAL(landfrac)
-  status = nf_put_var_double (foutid, landfracid, landfrac)
-  if (status .ne. NF_NOERR) call handle_err(status)
-  print*,"done writing landfrac data"
   
   print*,"writing sgh data",MINVAL(sgh),MAXVAL(sgh)
   status = nf_put_var_double (foutid, sghid, sgh)
@@ -2483,7 +2416,7 @@ SUBROUTINE internally_smooth(terr,terr_smooth,n,ncube_coarse,norder,nmono,npd,jm
   WRITE(*,*) "resolution of coarse grid", 90.0/ncube_coarse
   allocate ( terr_coarse(ncube_coarse,ncube_coarse,6),stat=alloc_error )
   if( alloc_error /= 0 ) then
-    print*,'Program could not allocate space for landfrac'
+    print*,'Program could not allocate space for terr_coarse'
     stop
   end if
   allocate ( area_target_coarse(ncube_coarse,ncube_coarse,6),stat=alloc_error)
